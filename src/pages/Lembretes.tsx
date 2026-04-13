@@ -60,6 +60,11 @@ const Lembretes = () => {
       )}
 
       <div className="space-y-2">
+        {sorted.length === 0 && (
+          <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <p className="text-muted-foreground text-sm">Nenhum lembrete ainda. Clique em "Novo Lembrete" para começar.</p>
+          </div>
+        )}
         {sorted.map((r) => (
           <div
             key={r.id}
