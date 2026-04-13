@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, LayoutList } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type CardStatus = "Backlog" | "Em Revisão QA" | "Em Produção";
@@ -32,13 +32,19 @@ const CardsJira = () => {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [filterStatus, setFilterStatus] = useState<CardStatus | "all">("all");
   const [filterPriority, setFilterPriority] = useState<Priority | "all">("all");
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const openNew = () => { setForm(emptyForm); setEditingId(null); setShowModal(true); };
+  const closeModal = () => { setShowModal(false); setEditingId(null); setForm(emptyForm); };
 
   const save = async () => {
-    if (!form.key || !form.title) return;
+    if (!form.key || !form.title) {
+      toast.error("Preencha o ID e o título");
+      return;
+    }
     const avatar = form.assignee.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     if (editingId) {
       await supabase.from("jira_cards").update({ key: form.key, title: form.title, description: form.description, status: form.status, priority: form.priority, assignee: form.assignee, assignee_avatar: avatar }).eq("id", editingId);
@@ -46,23 +52,20 @@ const CardsJira = () => {
       await supabase.from("jira_cards").insert({ key: form.key, title: form.title, description: form.description, status: form.status, priority: form.priority, assignee: form.assignee, assignee_avatar: avatar });
     }
     queryClient.invalidateQueries({ queryKey: ["jira_cards"] });
-    setForm(emptyForm);
-    setShowForm(false);
-    setEditingId(null);
+    closeModal();
     toast.success(editingId ? "Card atualizado" : "Card criado");
   };
 
   const startEdit = (card: any) => {
     setForm({ key: card.key, title: card.title, description: card.description || "", status: card.status, priority: card.priority, assignee: card.assignee || "" });
     setEditingId(card.id);
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    await supabase.from("jira_cards").delete().eq("id", deleteId);
+  const handleDelete = async (id: string) => {
+    await supabase.from("jira_cards").delete().eq("id", id);
     queryClient.invalidateQueries({ queryKey: ["jira_cards"] });
-    setDeleteId(null);
+    setConfirmDeleteId(null);
     toast.success("Card excluído");
   };
 
@@ -73,20 +76,30 @@ const CardsJira = () => {
   });
 
   const CardItem = ({ card }: { card: any }) => (
-    <div className="bg-card border border-border rounded-lg p-4">
+    <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-start justify-between mb-2">
         <span className="text-xs text-primary font-mono">{card.key}</span>
         <div className="flex items-center gap-1">
           <PriorityBadge priority={card.priority} />
-          <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground p-1"><Pencil className="w-3 h-3" /></button>
-          <button onClick={() => setDeleteId(card.id)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-3 h-3" /></button>
+          <button onClick={() => startEdit(card)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
+          {confirmDeleteId === card.id ? (
+            <div className="flex items-center gap-1 ml-1">
+              <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
+              <button onClick={() => handleDelete(card.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDeleteId(card.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3 h-3" /></button>
+          )}
         </div>
       </div>
       <h3 className="text-sm font-semibold text-foreground mb-1">{card.title}</h3>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{card.description}</p>
       <div className="flex items-center justify-between">
         <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
-        <span className="text-[10px] text-muted-foreground">{new Date(card.updated_at).toLocaleDateString("pt-BR")}</span>
+        <p className="text-[11px] text-muted-foreground">
+          Criado em: {new Date(card.created_at).toLocaleDateString("pt-BR")} às {new Date(card.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        </p>
       </div>
     </div>
   );
@@ -96,7 +109,7 @@ const CardsJira = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Cards Jira</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(!showForm); }} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground">
+          <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
           </button>
           <button disabled className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-muted-foreground border border-border opacity-50 cursor-not-allowed">
@@ -106,22 +119,6 @@ const CardsJira = () => {
           <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="w-4 h-4" /></button>
         </div>
       </div>
-
-      {showForm && (
-        <div className="bg-card border border-border rounded-lg p-4 mb-6 grid grid-cols-2 gap-3">
-          <input value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} placeholder="ID (ex: QA-101)" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground" />
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground" />
-          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground col-span-2" />
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as CardStatus })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option>
-          </select>
-          <input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} placeholder="Responsável" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground col-span-2" />
-          <button onClick={save} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">{editingId ? "Salvar Alterações" : "Adicionar"}</button>
-        </div>
-      )}
 
       <div className="flex gap-3 mb-6">
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as CardStatus | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-xs text-foreground">
@@ -153,32 +150,95 @@ const CardsJira = () => {
       ) : (
         <div className="space-y-2">
           {filtered.length === 0 && (
-            <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <div className="bg-card border border-border rounded-xl p-8 text-center">
               <p className="text-muted-foreground text-sm">Nenhum card cadastrado.</p>
             </div>
           )}
           {filtered.map((card) => (
-            <div key={card.id} className="bg-card border border-border rounded-lg p-4 flex items-center gap-4">
+            <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
               <span className="text-xs text-primary font-mono w-16">{card.key}</span>
               <span className="text-sm text-foreground flex-1">{card.title}</span>
               <PriorityBadge priority={card.priority} />
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
               <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
-              <button onClick={() => setDeleteId(card.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+              {confirmDeleteId === card.id ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
+                  <button onClick={() => handleDelete(card.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+                  <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDeleteId(card.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este card? Esta ação não pode ser desfeita.</p>
-          <DialogFooter>
-            <button onClick={() => setDeleteId(null)} className="px-4 py-2 text-sm rounded-md bg-secondary text-foreground">Cancelar</button>
-            <button onClick={confirmDelete} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground">Excluir</button>
-          </DialogFooter>
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
+        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl max-w-md p-0 gap-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2d38]">
+            <h2 className="text-base font-semibold text-foreground">{editingId ? "Editar Card" : "Novo Card"}</h2>
+            <button onClick={closeModal} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-5 py-4 flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                value={form.key}
+                onChange={(e) => setForm({ ...form, key: e.target.value })}
+                placeholder="ID (ex: QA-101)"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <input
+                value={form.assignee}
+                onChange={(e) => setForm({ ...form, assignee: e.target.value })}
+                placeholder="Responsável"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <input
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Título"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <input
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Descrição"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value as CardStatus })}
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="LOW">Baixa</option>
+                <option value="MEDIUM">Média</option>
+                <option value="HIGH">Alta</option>
+              </select>
+            </div>
+          </div>
+          <div className="px-5 pb-5">
+            <button
+              onClick={save}
+              className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              {editingId ? "Salvar Alterações" : "Criar Card"}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
