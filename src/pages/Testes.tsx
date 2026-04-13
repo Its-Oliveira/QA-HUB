@@ -51,6 +51,11 @@ const Testes = () => {
       </div>
 
       <div className="space-y-3">
+        {filtered.length === 0 && (
+          <div className="bg-card border border-border rounded-lg p-8 text-center">
+            <p className="text-muted-foreground text-sm">Nenhum teste cadastrado. Adicione um novo teste para começar.</p>
+          </div>
+        )}
         {filtered.map((test) => (
           <div key={test.id} className="bg-card border border-border rounded-lg">
             <div className="p-4 flex items-center gap-4 cursor-pointer" onClick={() => setExpandedId(expandedId === test.id ? null : test.id)}>

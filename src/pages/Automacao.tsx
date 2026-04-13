@@ -74,6 +74,9 @@ const Automacao = () => {
             </tr>
           </thead>
           <tbody>
+            {entries.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-sm">Nenhuma entrada. Clique em "Nova Entrada" para adicionar.</td></tr>
+            )}
             {entries.map((entry) => (
               <tr key={entry.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3">
