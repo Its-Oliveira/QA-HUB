@@ -6,14 +6,13 @@ import StatusDot from "@/components/StatusDot";
 import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-type CardStatus = "Backlog" | "Em Revisão QA" | "Tarefas em Teste" | "Em Produção";
+type CardStatus = "Backlog" | "Em Revisão QA" | "Em Produção";
 type Priority = "HIGH" | "MEDIUM" | "LOW";
 
-const statuses: CardStatus[] = ["Backlog", "Em Revisão QA", "Tarefas em Teste", "Em Produção"];
-const statusColors: Record<CardStatus, "warning" | "info" | "success" | "purple"> = {
+const statuses: CardStatus[] = ["Backlog", "Em Revisão QA", "Em Produção"];
+const statusColors: Record<CardStatus, "warning" | "info" | "success"> = {
   Backlog: "warning",
   "Em Revisão QA": "info",
-  "Tarefas em Teste": "purple",
   "Em Produção": "success",
 };
 
@@ -147,7 +146,7 @@ const CardsJira = () => {
       </div>
 
       {view === "kanban" ? (
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           {statuses.map((status) => (
             <div key={status}>
               <div className="flex items-center gap-2 mb-3">

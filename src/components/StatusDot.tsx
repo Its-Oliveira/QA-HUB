@@ -1,11 +1,10 @@
-const StatusDot = ({ color = "success", label }: { color?: "success" | "warning" | "destructive" | "info" | "muted" | "purple"; label?: string }) => {
+const StatusDot = ({ color = "success", label }: { color?: "success" | "warning" | "destructive" | "info" | "muted"; label?: string }) => {
   const colorMap = {
     success: "bg-success",
     warning: "bg-warning",
     destructive: "bg-destructive",
     info: "bg-primary",
     muted: "bg-muted-foreground",
-    purple: "bg-violet-500",
   };
 
   return (
