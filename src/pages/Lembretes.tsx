@@ -11,7 +11,7 @@ const Lembretes = () => {
     return saved ? JSON.parse(saved) : initialReminders;
   });
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", dueDate: "", category: "Other" as Reminder["category"], priority: "MEDIUM" as Priority, jiraCardRef: "" });
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "", category: "Outro" as Reminder["category"], priority: "MEDIUM" as Priority, jiraCardRef: "" });
 
   const save = (updated: Reminder[]) => {
     setReminders(updated);
