@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
-import { Plus, Trash2, Check, Pencil } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Pencil, X, Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
@@ -10,11 +10,17 @@ type Priority = "HIGH" | "MEDIUM" | "LOW";
 type Category = "Criar Card" | "Tarefa de Teste" | "Revisão" | "Outro";
 const categories: Category[] = ["Criar Card", "Tarefa de Teste", "Revisão", "Outro"];
 
+const priorityBorderColor: Record<Priority, string> = {
+  HIGH: "border-l-destructive",
+  MEDIUM: "border-l-warning",
+  LOW: "border-l-primary",
+};
+
 const emptyForm = { title: "", description: "", dueDate: "", category: "Outro" as Category, priority: "MEDIUM" as Priority, jiraCardRef: "" };
 
 const Lembretes = () => {
   const queryClient = useQueryClient();
-  const { data: reminders = [] } = useQuery({
+  const { data: rawReminders = [] } = useQuery({
     queryKey: ["reminders"],
     queryFn: async () => {
       const { data } = await supabase.from("reminders").select("*").order("due_date", { ascending: true });
@@ -22,10 +28,19 @@ const Lembretes = () => {
     },
   });
 
-  const [showForm, setShowForm] = useState(false);
+  // Sort: incomplete first (by due_date), completed at bottom
+  const reminders = [...rawReminders].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  });
+
+  const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const openNew = () => { setForm(emptyForm); setEditingId(null); setShowModal(true); };
+  const closeModal = () => { setShowModal(false); setEditingId(null); setForm(emptyForm); };
 
   const saveForm = async () => {
     if (!form.title || !form.dueDate) {
@@ -51,9 +66,7 @@ const Lembretes = () => {
       await supabase.from("reminders").insert(payload);
     }
     queryClient.invalidateQueries({ queryKey: ["reminders"] });
-    setForm(emptyForm);
-    setShowForm(false);
-    setEditingId(null);
+    closeModal();
     toast.success(editingId ? "Lembrete atualizado" : "Lembrete criado");
   };
 
@@ -67,14 +80,13 @@ const Lembretes = () => {
     const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setForm({ title: r.title, description: r.description || "", dueDate: local, category: r.category, priority: r.priority, jiraCardRef: r.jira_card_ref || "" });
     setEditingId(r.id);
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    await supabase.from("reminders").delete().eq("id", deleteId);
+  const handleDelete = async (id: string) => {
+    await supabase.from("reminders").delete().eq("id", id);
     queryClient.invalidateQueries({ queryKey: ["reminders"] });
-    setDeleteId(null);
+    setConfirmDeleteId(null);
     toast.success("Lembrete excluído");
   };
 
@@ -84,62 +96,154 @@ const Lembretes = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Lembretes</h1>
-        <button onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(!showForm); }} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground">
+        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
           <Plus className="w-3 h-3" /> Novo Lembrete
         </button>
       </div>
 
-      {showForm && (
-        <div className="bg-card border border-border rounded-lg p-4 mb-6 grid grid-cols-2 gap-3">
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground col-span-2" />
-          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground col-span-2" />
-          <input type="datetime-local" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground" />
-          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Category })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option>
-          </select>
-          <input value={form.jiraCardRef} onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })} placeholder="Ref Jira (opcional)" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground" />
-          <button onClick={saveForm} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">{editingId ? "Salvar Alterações" : "Adicionar"}</button>
+      {/* Empty state */}
+      {reminders.length === 0 && (
+        <div className="bg-card border border-border rounded-xl p-12 text-center flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Bell className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <p className="text-foreground font-medium mb-1">Nenhum lembrete ainda</p>
+            <p className="text-muted-foreground text-sm">Crie o primeiro!</p>
+          </div>
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-md text-sm bg-primary text-primary-foreground font-medium">
+            <Plus className="w-4 h-4" /> Novo Lembrete
+          </button>
         </div>
       )}
 
-      <div className="space-y-2">
-        {reminders.length === 0 && (
-          <div className="bg-card border border-border rounded-lg p-8 text-center">
-            <p className="text-muted-foreground text-sm">Nenhum lembrete ainda. Clique em "Novo Lembrete" para começar.</p>
-          </div>
-        )}
+      {/* Reminder list */}
+      <div className="space-y-3">
         {reminders.map((r) => (
-          <div key={r.id} className={`bg-card border rounded-lg p-4 flex items-center gap-4 transition-opacity ${r.completed ? "opacity-40" : ""} ${isOverdue(r) ? "border-destructive" : "border-border"}`}>
-            <button onClick={() => toggleComplete(r.id, r.completed)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${r.completed ? "bg-success border-success" : "border-border"}`}>
-              {r.completed && <Check className="w-3 h-3 text-success-foreground" />}
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium text-foreground ${r.completed ? "line-through" : ""}`}>{r.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{r.description}</p>
+          <div
+            key={r.id}
+            className={`bg-card border border-border rounded-xl p-4 border-l-4 transition-all ${
+              r.completed ? `border-l-success opacity-60` : priorityBorderColor[r.priority as Priority] || "border-l-primary"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between mb-1">
+                  <p className={`text-sm font-semibold text-foreground ${r.completed ? "line-through" : ""}`}>
+                    {r.title}
+                  </p>
+                  <div className="flex items-center gap-1 shrink-0 ml-3">
+                    <PriorityBadge priority={r.priority} />
+                  </div>
+                </div>
+                {r.description && (
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{r.description}</p>
+                )}
+                {/* Metadata pills */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-md ${isOverdue(r) ? "bg-destructive/15 text-destructive font-medium" : "bg-secondary text-muted-foreground"}`}>
+                    {new Date(r.due_date).toLocaleDateString("pt-BR")} {new Date(r.due_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{r.category}</span>
+                  {r.jira_card_ref && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-mono">{r.jira_card_ref}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => toggleComplete(r.id, r.completed)}
+                  className={`p-1.5 rounded-md transition-colors ${r.completed ? "text-success hover:text-success/80" : "text-muted-foreground hover:text-success"}`}
+                  title={r.completed ? "Desmarcar" : "Concluir"}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </button>
+                <button onClick={() => startEdit(r)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors" title="Editar">
+                  <Pencil className="w-4 h-4" />
+                </button>
+                {confirmDeleteId === r.id ? (
+                  <div className="flex items-center gap-1 ml-1">
+                    <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
+                    <button onClick={() => handleDelete(r.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+                    <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteId(r.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors" title="Excluir">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground">{r.category}</span>
-            <PriorityBadge priority={r.priority} />
-            <span className={`text-xs ${isOverdue(r) ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-              {new Date(r.due_date).toLocaleDateString("pt-BR")} {new Date(r.due_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-            {r.jira_card_ref && <span className="text-[10px] text-primary font-mono">{r.jira_card_ref}</span>}
-            <button onClick={() => startEdit(r)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
-            <button onClick={() => setDeleteId(r.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
           </div>
         ))}
       </div>
 
-      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este lembrete?</p>
-          <DialogFooter>
-            <button onClick={() => setDeleteId(null)} className="px-4 py-2 text-sm rounded-md bg-secondary text-foreground">Cancelar</button>
-            <button onClick={confirmDelete} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground">Excluir</button>
-          </DialogFooter>
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
+        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl max-w-md p-0 gap-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2d38]">
+            <h2 className="text-base font-semibold text-foreground">{editingId ? "Editar Lembrete" : "Novo Lembrete"}</h2>
+            <button onClick={closeModal} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="px-5 py-4 flex flex-col gap-3">
+            <input
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Título"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <input
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Descrição"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="datetime-local"
+                value={form.dueDate}
+                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value as Category })}
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="LOW">Baixa</option>
+                <option value="MEDIUM">Média</option>
+                <option value="HIGH">Alta</option>
+              </select>
+              <input
+                value={form.jiraCardRef}
+                onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })}
+                placeholder="Ref Jira (opcional)"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+          <div className="px-5 pb-5">
+            <button
+              onClick={saveForm}
+              className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              {editingId ? "Salvar Alterações" : "Criar Lembrete"}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
