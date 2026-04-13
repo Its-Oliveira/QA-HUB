@@ -22,7 +22,7 @@ const Lembretes = () => {
     if (!form.title || !form.dueDate) return;
     const newR: Reminder = { ...form, id: Date.now().toString(), completed: false, dueDate: new Date(form.dueDate).toISOString() };
     save([...reminders, newR]);
-    setForm({ title: "", description: "", dueDate: "", category: "Other", priority: "MEDIUM", jiraCardRef: "" });
+    setForm({ title: "", description: "", dueDate: "", category: "Outro", priority: "MEDIUM", jiraCardRef: "" });
     setShowForm(false);
   };
 
