@@ -13,7 +13,7 @@ const Dashboard = () => {
   const cardsInReview = cards.filter((c) => c.status === "Em Revisão QA");
   const backlogCards = cards.filter((c) => c.status === "Backlog");
   const pendingReminders = reminders.filter((r) => !r.completed).length;
-  const automatedCount = automation.filter((e) => e.status === "Automated").length;
+  const automatedCount = automation.filter((e) => e.status === "Automatizado").length;
   const coverage = automation.length > 0 ? Math.round((automatedCount / automation.length) * 100) : 0;
 
   const stats = [

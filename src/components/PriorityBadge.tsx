@@ -1,9 +1,9 @@
 import { Priority } from "@/data/mockData";
 
 const priorityConfig: Record<Priority, { label: string; className: string }> = {
-  HIGH: { label: "HIGH PRIORITY", className: "bg-destructive/20 text-destructive" },
-  MEDIUM: { label: "MEDIUM", className: "bg-warning/20 text-warning" },
-  LOW: { label: "LOW PRIORITY", className: "bg-muted text-muted-foreground" },
+  HIGH: { label: "ALTA PRIORIDADE", className: "bg-destructive/20 text-destructive" },
+  MEDIUM: { label: "MÉDIA", className: "bg-warning/20 text-warning" },
+  LOW: { label: "BAIXA PRIORIDADE", className: "bg-muted text-muted-foreground" },
 };
 
 const PriorityBadge = ({ priority }: { priority: Priority }) => {

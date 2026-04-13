@@ -35,7 +35,7 @@ export interface Reminder {
   title: string;
   description: string;
   dueDate: string;
-  category: "Create Card" | "Test Task" | "Review" | "Other";
+  category: "Criar Card" | "Tarefa de Teste" | "Revisão" | "Outro";
   priority: Priority;
   completed: boolean;
   jiraCardRef?: string;
@@ -63,7 +63,7 @@ export interface AutomationEntry {
   id: string;
   feature: string;
   testFile: string;
-  status: "Automated" | "In Progress" | "Pending";
+  status: "Automatizado" | "Em Progresso" | "Pendente";
   lastRunDate: string;
   notes: string;
 }

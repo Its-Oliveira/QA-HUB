@@ -3,7 +3,7 @@ import { initialReminders, Reminder, Priority } from "@/data/mockData";
 import PriorityBadge from "@/components/PriorityBadge";
 import { Plus, Trash2, Check } from "lucide-react";
 
-const categories = ["Create Card", "Test Task", "Review", "Other"] as const;
+const categories = ["Criar Card", "Tarefa de Teste", "Revisão", "Outro"] as const;
 
 const Lembretes = () => {
   const [reminders, setReminders] = useState<Reminder[]>(() => {
@@ -11,7 +11,7 @@ const Lembretes = () => {
     return saved ? JSON.parse(saved) : initialReminders;
   });
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", dueDate: "", category: "Other" as Reminder["category"], priority: "MEDIUM" as Priority, jiraCardRef: "" });
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "", category: "Outro" as Reminder["category"], priority: "MEDIUM" as Priority, jiraCardRef: "" });
 
   const save = (updated: Reminder[]) => {
     setReminders(updated);
@@ -22,7 +22,7 @@ const Lembretes = () => {
     if (!form.title || !form.dueDate) return;
     const newR: Reminder = { ...form, id: Date.now().toString(), completed: false, dueDate: new Date(form.dueDate).toISOString() };
     save([...reminders, newR]);
-    setForm({ title: "", description: "", dueDate: "", category: "Other", priority: "MEDIUM", jiraCardRef: "" });
+    setForm({ title: "", description: "", dueDate: "", category: "Outro", priority: "MEDIUM", jiraCardRef: "" });
     setShowForm(false);
   };
 
@@ -50,9 +50,9 @@ const Lembretes = () => {
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
+            <option value="LOW">Baixa</option>
+            <option value="MEDIUM">Média</option>
+            <option value="HIGH">Alta</option>
           </select>
           <input value={form.jiraCardRef} onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })} placeholder="Ref Jira (opcional)" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground" />
           <button onClick={addReminder} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">Adicionar</button>
