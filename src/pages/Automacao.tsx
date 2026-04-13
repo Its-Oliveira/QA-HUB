@@ -3,9 +3,9 @@ import { initialAutomation, AutomationEntry } from "@/data/mockData";
 import { Plus } from "lucide-react";
 
 const statusColors: Record<AutomationEntry["status"], string> = {
-  Automated: "bg-success/20 text-success",
-  "In Progress": "bg-warning/20 text-warning",
-  Pending: "bg-muted text-muted-foreground",
+  Automatizado: "bg-success/20 text-success",
+  "Em Progresso": "bg-warning/20 text-warning",
+  Pendente: "bg-muted text-muted-foreground",
 };
 
 const Automacao = () => {
@@ -23,12 +23,12 @@ const Automacao = () => {
     save(entries.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
   };
 
-  const automated = entries.filter((e) => e.status === "Automated").length;
+  const automated = entries.filter((e) => e.status === "Automatizado").length;
   const total = entries.length;
   const coverage = total > 0 ? Math.round((automated / total) * 100) : 0;
 
   const addEntry = () => {
-    const newEntry: AutomationEntry = { id: Date.now().toString(), feature: "", testFile: "", status: "Pending", lastRunDate: "", notes: "" };
+    const newEntry: AutomationEntry = { id: Date.now().toString(), feature: "", testFile: "", status: "Pendente", lastRunDate: "", notes: "" };
     save([...entries, newEntry]);
   };
 
@@ -65,7 +65,7 @@ const Automacao = () => {
       {/* GitHub section placeholder */}
       <div className="bg-card border border-border rounded-lg p-4 mb-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-foreground">GitHub Commits</h2>
+          <h2 className="text-sm font-semibold text-foreground">Commits do GitHub</h2>
           <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground">Configure PAT em Configurações</span>
         </div>
         <p className="text-xs text-muted-foreground">Conecte seu repositório GitHub nas configurações para ver commits recentes do repositório Cypress.</p>
@@ -77,7 +77,7 @@ const Automacao = () => {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Feature</th>
+              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Funcionalidade</th>
               <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Arquivo de Teste</th>
               <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</th>
               <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Última Execução</th>
@@ -110,9 +110,9 @@ const Automacao = () => {
                     onChange={(e) => updateField(entry.id, "status", e.target.value)}
                     className={`text-[10px] font-semibold px-2 py-1 rounded border-0 ${statusColors[entry.status as AutomationEntry["status"]]}`}
                   >
-                    <option value="Automated">Automated</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Pending">Pending</option>
+                    <option value="Automatizado">Automatizado</option>
+                    <option value="Em Progresso">Em Progresso</option>
+                    <option value="Pendente">Pendente</option>
                   </select>
                 </td>
                 <td className="px-4 py-3">
