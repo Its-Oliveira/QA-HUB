@@ -14,6 +14,7 @@ const STATUS_MAP: Record<string, string> = {
   'em revisão': 'Em Revisão QA',
   'revisão qa': 'Em Revisão QA',
   'qa review': 'Em Revisão QA',
+  'tarefas em teste': 'Tarefas em Teste',
   'em produção': 'Em Produção',
   'produção': 'Em Produção',
   'production': 'Em Produção',
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
     }
 
     const auth = btoa(`${jiraEmail}:${jiraToken}`)
-    const jql = `project = ${JIRA_PROJECT} ORDER BY created DESC`
+    const jql = `project in (${JIRA_PROJECTS}) ORDER BY created DESC`
     const url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=summary,description,status,priority,assignee,created`
 
     const jiraRes = await fetch(url, {
