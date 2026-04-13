@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
 import { Plus, Trash2, CheckCircle, Pencil, X, Bell } from "lucide-react";
@@ -19,6 +20,7 @@ const priorityBorderColor: Record<Priority, string> = {
 const emptyForm = { title: "", description: "", dueDate: "", category: "Outro" as Category, priority: "MEDIUM" as Priority, jiraCardRef: "" };
 
 const Lembretes = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: rawReminders = [] } = useQuery({
     queryKey: ["reminders"],
@@ -47,18 +49,11 @@ const Lembretes = () => {
       toast.error("Preencha o título e a data");
       return;
     }
-    let dueDateISO: string;
-    try {
-      const parsed = new Date(form.dueDate);
-      if (isNaN(parsed.getTime())) throw new Error("Data inválida");
-      dueDateISO = parsed.toISOString();
-    } catch {
-      toast.error("Data/hora inválida. Preencha a data e o horário.");
-      return;
-    }
+    const dueDateISO = new Date(form.dueDate + "T00:00:00").toISOString();
     const payload = {
       title: form.title, description: form.description, due_date: dueDateISO,
       category: form.category, priority: form.priority, jira_card_ref: form.jiraCardRef || null,
+      created_by: user?.email || null,
     };
     if (editingId) {
       await supabase.from("reminders").update(payload).eq("id", editingId);
@@ -77,8 +72,8 @@ const Lembretes = () => {
 
   const startEdit = (r: any) => {
     const dt = new Date(r.due_date);
-    const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    setForm({ title: r.title, description: r.description || "", dueDate: local, category: r.category, priority: r.priority, jiraCardRef: r.jira_card_ref || "" });
+    const localDate = dt.toISOString().slice(0, 10);
+    setForm({ title: r.title, description: r.description || "", dueDate: localDate, category: r.category, priority: r.priority, jiraCardRef: r.jira_card_ref || "" });
     setEditingId(r.id);
     setShowModal(true);
   };
@@ -143,11 +138,17 @@ const Lembretes = () => {
                 {/* Metadata pills */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`text-[11px] px-2 py-0.5 rounded-md ${isOverdue(r) ? "bg-destructive/15 text-destructive font-medium" : "bg-secondary text-muted-foreground"}`}>
-                    {new Date(r.due_date).toLocaleDateString("pt-BR")} {new Date(r.due_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(r.due_date).toLocaleDateString("pt-BR")}
+                  </span>
                   </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{r.category}</span>
                   {r.jira_card_ref && (
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-mono">{r.jira_card_ref}</span>
+                  )}
+                  {(r as any).created_by && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary">
+                      {(r as any).created_by.split("@")[0]}
+                    </span>
                   )}
                 </div>
               </div>
@@ -205,7 +206,7 @@ const Lembretes = () => {
             />
             <div className="grid grid-cols-2 gap-3">
               <input
-                type="datetime-local"
+                type="date"
                 value={form.dueDate}
                 onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                 className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
