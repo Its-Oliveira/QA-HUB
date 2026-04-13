@@ -62,7 +62,7 @@ const CardsJira = () => {
             <Plus className="w-3 h-3" /> Novo Card
           </button>
           <button disabled className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-muted-foreground border border-border opacity-50 cursor-not-allowed">
-            <RefreshCw className="w-3 h-3" /> Sync with Jira
+            <RefreshCw className="w-3 h-3" /> Sincronizar com Jira
           </button>
           <button onClick={() => setView("kanban")} className={`p-1.5 rounded ${view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
           <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="w-4 h-4" /></button>
@@ -78,7 +78,7 @@ const CardsJira = () => {
             {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option>
+            <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option>
           </select>
           <input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} placeholder="Responsável" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground col-span-2" />
           <button onClick={addCard} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">Adicionar</button>
@@ -92,7 +92,7 @@ const CardsJira = () => {
         </select>
         <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as Priority | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-xs text-foreground">
           <option value="all">Todas Prioridades</option>
-          <option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option>
+          <option value="HIGH">Alta</option><option value="MEDIUM">Média</option><option value="LOW">Baixa</option>
         </select>
       </div>
 

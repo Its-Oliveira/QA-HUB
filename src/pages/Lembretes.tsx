@@ -50,9 +50,9 @@ const Lembretes = () => {
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground">
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
+            <option value="LOW">Baixa</option>
+            <option value="MEDIUM">Média</option>
+            <option value="HIGH">Alta</option>
           </select>
           <input value={form.jiraCardRef} onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })} placeholder="Ref Jira (opcional)" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground" />
           <button onClick={addReminder} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">Adicionar</button>

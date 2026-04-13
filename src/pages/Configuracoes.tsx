@@ -17,9 +17,9 @@ const Configuracoes = () => {
       <h1 className="text-2xl font-semibold text-foreground mb-6">Configurações</h1>
 
       <div className="bg-card border border-border rounded-lg p-6 max-w-lg space-y-4">
-        <h2 className="text-sm font-semibold text-foreground">GitHub Integration</h2>
+        <h2 className="text-sm font-semibold text-foreground">Integração GitHub</h2>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Personal Access Token (PAT)</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Token de Acesso Pessoal (PAT)</label>
           <input
             type="password"
             value={pat}
@@ -29,7 +29,7 @@ const Configuracoes = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Repositório (owner/repo)</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Repositório (dono/repo)</label>
           <input
             value={repo}
             onChange={(e) => setRepo(e.target.value)}
