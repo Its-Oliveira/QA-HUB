@@ -29,8 +29,8 @@ const Automacao = () => {
     queryClient.invalidateQueries({ queryKey: ["automation_tracker"] });
   };
 
-  const updateField = async (id: string, field: string, value: string) => {
-    await supabase.from("automation_tracker").update({ [field]: value }).eq("id", id);
+  const updateField = async (id: string, field: "feature" | "test_file" | "status" | "last_run_date" | "notes", value: string) => {
+    await supabase.from("automation_tracker").update({ [field]: value } as any).eq("id", id);
     queryClient.invalidateQueries({ queryKey: ["automation_tracker"] });
   };
 
