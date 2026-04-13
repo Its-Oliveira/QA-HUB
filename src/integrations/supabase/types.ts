@@ -54,6 +54,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          jira_synced: boolean
           key: string
           priority: string
           status: string
@@ -67,6 +68,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          jira_synced?: boolean
           key: string
           priority?: string
           status?: string
@@ -80,6 +82,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          jira_synced?: boolean
           key?: string
           priority?: string
           status?: string
