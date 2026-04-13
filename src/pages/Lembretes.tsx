@@ -17,7 +17,7 @@ const priorityBorderColor: Record<Priority, string> = {
   LOW: "border-l-primary",
 };
 
-const emptyForm = { title: "", description: "", dueDate: "", category: "Outro" as Category, priority: "MEDIUM" as Priority, jiraCardRef: "" };
+const emptyForm = { title: "", description: "", category: "Outro" as Category, priority: "MEDIUM" as Priority, jiraCardRef: "" };
 
 const Lembretes = () => {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ const Lembretes = () => {
   const { data: rawReminders = [] } = useQuery({
     queryKey: ["reminders"],
     queryFn: async () => {
-      const { data } = await supabase.from("reminders").select("*").order("due_date", { ascending: true });
+      const { data } = await supabase.from("reminders").select("*").order("created_at", { ascending: false });
       return data || [];
     },
   });
@@ -33,7 +33,7 @@ const Lembretes = () => {
   // Sort: incomplete first (by due_date), completed at bottom
   const reminders = [...rawReminders].sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -45,13 +45,12 @@ const Lembretes = () => {
   const closeModal = () => { setShowModal(false); setEditingId(null); setForm(emptyForm); };
 
   const saveForm = async () => {
-    if (!form.title || !form.dueDate) {
-      toast.error("Preencha o título e a data");
+    if (!form.title) {
+      toast.error("Preencha o título");
       return;
     }
-    const dueDateISO = new Date(form.dueDate + "T00:00:00").toISOString();
     const payload = {
-      title: form.title, description: form.description, due_date: dueDateISO,
+      title: form.title, description: form.description, due_date: new Date().toISOString(),
       category: form.category, priority: form.priority, jira_card_ref: form.jiraCardRef || null,
       created_by: user?.email || null,
     };
@@ -71,9 +70,7 @@ const Lembretes = () => {
   };
 
   const startEdit = (r: any) => {
-    const dt = new Date(r.due_date);
-    const localDate = dt.toISOString().slice(0, 10);
-    setForm({ title: r.title, description: r.description || "", dueDate: localDate, category: r.category, priority: r.priority, jiraCardRef: r.jira_card_ref || "" });
+    setForm({ title: r.title, description: r.description || "", category: r.category, priority: r.priority, jiraCardRef: r.jira_card_ref || "" });
     setEditingId(r.id);
     setShowModal(true);
   };
@@ -85,7 +82,7 @@ const Lembretes = () => {
     toast.success("Lembrete excluído");
   };
 
-  const isOverdue = (r: any) => !r.completed && new Date(r.due_date) < new Date();
+  const isOverdue = (_r: any) => false; // No longer relevant without due dates
 
   return (
     <div>
@@ -137,9 +134,6 @@ const Lembretes = () => {
                 )}
                 {/* Metadata pills */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[11px] px-2 py-0.5 rounded-md ${isOverdue(r) ? "bg-destructive/15 text-destructive font-medium" : "bg-secondary text-muted-foreground"}`}>
-                    {new Date(r.due_date).toLocaleDateString("pt-BR")}
-                  </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{r.category}</span>
                   {r.jira_card_ref && (
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-mono">{r.jira_card_ref}</span>
@@ -150,6 +144,9 @@ const Lembretes = () => {
                     </span>
                   )}
                 </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Criado em: {new Date(r.created_at).toLocaleDateString("pt-BR")} às {new Date(r.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </p>
               </div>
 
               {/* Actions */}
@@ -204,12 +201,6 @@ const Lembretes = () => {
               className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <div className="grid grid-cols-2 gap-3">
-              <input
-                type="date"
-                value={form.dueDate}
-                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value as Category })}
@@ -217,8 +208,6 @@ const Lembretes = () => {
               >
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
@@ -228,13 +217,13 @@ const Lembretes = () => {
                 <option value="MEDIUM">Média</option>
                 <option value="HIGH">Alta</option>
               </select>
-              <input
-                value={form.jiraCardRef}
-                onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })}
-                placeholder="Ref Jira (opcional)"
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
             </div>
+            <input
+              value={form.jiraCardRef}
+              onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })}
+              placeholder="Ref Jira (opcional)"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
           </div>
           <div className="px-5 pb-5">
             <button
