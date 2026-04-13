@@ -28,17 +28,27 @@ const Lembretes = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const saveForm = async () => {
-    if (!form.title || !form.dueDate) return;
+    if (!form.title || !form.dueDate) {
+      toast.error("Preencha o título e a data");
+      return;
+    }
+    let dueDateISO: string;
+    try {
+      const parsed = new Date(form.dueDate);
+      if (isNaN(parsed.getTime())) throw new Error("Data inválida");
+      dueDateISO = parsed.toISOString();
+    } catch {
+      toast.error("Data/hora inválida. Preencha a data e o horário.");
+      return;
+    }
+    const payload = {
+      title: form.title, description: form.description, due_date: dueDateISO,
+      category: form.category, priority: form.priority, jira_card_ref: form.jiraCardRef || null,
+    };
     if (editingId) {
-      await supabase.from("reminders").update({
-        title: form.title, description: form.description, due_date: new Date(form.dueDate).toISOString(),
-        category: form.category, priority: form.priority, jira_card_ref: form.jiraCardRef || null,
-      }).eq("id", editingId);
+      await supabase.from("reminders").update(payload).eq("id", editingId);
     } else {
-      await supabase.from("reminders").insert({
-        title: form.title, description: form.description, due_date: new Date(form.dueDate).toISOString(),
-        category: form.category, priority: form.priority, jira_card_ref: form.jiraCardRef || null,
-      });
+      await supabase.from("reminders").insert(payload);
     }
     queryClient.invalidateQueries({ queryKey: ["reminders"] });
     setForm(emptyForm);
