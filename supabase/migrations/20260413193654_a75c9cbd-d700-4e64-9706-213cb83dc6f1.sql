@@ -1,0 +1,1 @@
+ALTER TABLE public.jira_cards ADD COLUMN jira_synced boolean NOT NULL DEFAULT false;

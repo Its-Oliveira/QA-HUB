@@ -1,0 +1,1 @@
+ALTER TABLE public.jira_cards ADD CONSTRAINT jira_cards_key_unique UNIQUE (key);

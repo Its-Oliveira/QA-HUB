@@ -3,10 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, LayoutList } from "lucide-react";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
 type CardStatus = "Backlog" | "Em Revisão QA" | "Em Produção";
 type Priority = "HIGH" | "MEDIUM" | "LOW";
 
@@ -36,9 +35,24 @@ const CardsJira = () => {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const openNew = () => { setForm(emptyForm); setEditingId(null); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditingId(null); setForm(emptyForm); };
+
+  const syncJira = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-jira");
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["jira_cards"] });
+      toast.success(data.message || `${data.synced} cards sincronizados`);
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar: " + (err.message || "erro desconhecido"));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const save = async () => {
     if (!form.key || !form.title) {
@@ -112,8 +126,8 @@ const CardsJira = () => {
           <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
           </button>
-          <button disabled className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-muted-foreground border border-border opacity-50 cursor-not-allowed">
-            <RefreshCw className="w-3 h-3" /> Sincronizar com Jira
+          <button onClick={syncJira} disabled={syncing} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-foreground border border-border hover:bg-accent transition-colors disabled:opacity-50">
+            {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} {syncing ? "Sincronizando..." : "Sincronizar com Jira"}
           </button>
           <button onClick={() => setView("kanban")} className={`p-1.5 rounded ${view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
           <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="w-4 h-4" /></button>
