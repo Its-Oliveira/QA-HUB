@@ -27,9 +27,19 @@ const Automacao = () => {
   const total = entries.length;
   const coverage = total > 0 ? Math.round((automated / total) * 100) : 0;
 
+  const addEntry = () => {
+    const newEntry: AutomationEntry = { id: Date.now().toString(), feature: "", testFile: "", status: "Pending", lastRunDate: "", notes: "" };
+    save([...entries, newEntry]);
+  };
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-foreground mb-6">Automação Cypress</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Automação Cypress</h1>
+        <button onClick={addEntry} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground">
+          <Plus className="w-3 h-3" /> Nova Entrada
+        </button>
+      </div>
 
       {/* Coverage stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
