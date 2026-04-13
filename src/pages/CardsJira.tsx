@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { jiraCards as defaultCards, CardStatus, Priority, JiraCard } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus } from "lucide-react";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+
+type CardStatus = "Backlog" | "Em Revisão QA" | "Em Produção";
+type Priority = "HIGH" | "MEDIUM" | "LOW";
 
 const statuses: CardStatus[] = ["Backlog", "Em Revisão QA", "Em Produção"];
 const statusColors: Record<CardStatus, "warning" | "info" | "success"> = {
@@ -11,25 +17,53 @@ const statusColors: Record<CardStatus, "warning" | "info" | "success"> = {
   "Em Produção": "success",
 };
 
+const emptyForm = { key: "", title: "", description: "", status: "Backlog" as CardStatus, priority: "MEDIUM" as Priority, assignee: "" };
+
 const CardsJira = () => {
-  const [cards, setCards] = useState<JiraCard[]>(() => {
-    const saved = localStorage.getItem("qa-hub-cards");
-    return saved ? JSON.parse(saved) : defaultCards;
+  const queryClient = useQueryClient();
+  const { data: cards = [] } = useQuery({
+    queryKey: ["jira_cards"],
+    queryFn: async () => {
+      const { data } = await supabase.from("jira_cards").select("*").order("created_at", { ascending: false });
+      return data || [];
+    },
   });
+
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [filterStatus, setFilterStatus] = useState<CardStatus | "all">("all");
   const [filterPriority, setFilterPriority] = useState<Priority | "all">("all");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ key: "", title: "", description: "", status: "Backlog" as CardStatus, priority: "MEDIUM" as Priority, assignee: "" });
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const save = (updated: JiraCard[]) => { setCards(updated); localStorage.setItem("qa-hub-cards", JSON.stringify(updated)); };
-
-  const addCard = () => {
+  const save = async () => {
     if (!form.key || !form.title) return;
-    const newCard: JiraCard = { ...form, id: Date.now().toString(), assigneeAvatar: form.assignee.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2), updatedAt: new Date().toISOString() };
-    save([...cards, newCard]);
-    setForm({ key: "", title: "", description: "", status: "Backlog", priority: "MEDIUM", assignee: "" });
+    const avatar = form.assignee.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    if (editingId) {
+      await supabase.from("jira_cards").update({ key: form.key, title: form.title, description: form.description, status: form.status, priority: form.priority, assignee: form.assignee, assignee_avatar: avatar }).eq("id", editingId);
+    } else {
+      await supabase.from("jira_cards").insert({ key: form.key, title: form.title, description: form.description, status: form.status, priority: form.priority, assignee: form.assignee, assignee_avatar: avatar });
+    }
+    queryClient.invalidateQueries({ queryKey: ["jira_cards"] });
+    setForm(emptyForm);
     setShowForm(false);
+    setEditingId(null);
+    toast.success(editingId ? "Card atualizado" : "Card criado");
+  };
+
+  const startEdit = (card: any) => {
+    setForm({ key: card.key, title: card.title, description: card.description || "", status: card.status, priority: card.priority, assignee: card.assignee || "" });
+    setEditingId(card.id);
+    setShowForm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    await supabase.from("jira_cards").delete().eq("id", deleteId);
+    queryClient.invalidateQueries({ queryKey: ["jira_cards"] });
+    setDeleteId(null);
+    toast.success("Card excluído");
   };
 
   const filtered = cards.filter((c) => {
@@ -38,17 +72,21 @@ const CardsJira = () => {
     return true;
   });
 
-  const CardItem = ({ card }: { card: JiraCard }) => (
+  const CardItem = ({ card }: { card: any }) => (
     <div className="bg-card border border-border rounded-lg p-4">
       <div className="flex items-start justify-between mb-2">
         <span className="text-xs text-primary font-mono">{card.key}</span>
-        <PriorityBadge priority={card.priority} />
+        <div className="flex items-center gap-1">
+          <PriorityBadge priority={card.priority} />
+          <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground p-1"><Pencil className="w-3 h-3" /></button>
+          <button onClick={() => setDeleteId(card.id)} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-3 h-3" /></button>
+        </div>
       </div>
       <h3 className="text-sm font-semibold text-foreground mb-1">{card.title}</h3>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{card.description}</p>
       <div className="flex items-center justify-between">
-        <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assigneeAvatar}</div>
-        <span className="text-[10px] text-muted-foreground">{new Date(card.updatedAt).toLocaleDateString("pt-BR")}</span>
+        <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
+        <span className="text-[10px] text-muted-foreground">{new Date(card.updated_at).toLocaleDateString("pt-BR")}</span>
       </div>
     </div>
   );
@@ -58,7 +96,7 @@ const CardsJira = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Cards Jira</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground">
+          <button onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(!showForm); }} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground">
             <Plus className="w-3 h-3" /> Novo Card
           </button>
           <button disabled className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-muted-foreground border border-border opacity-50 cursor-not-allowed">
@@ -81,7 +119,7 @@ const CardsJira = () => {
             <option value="LOW">Baixa</option><option value="MEDIUM">Média</option><option value="HIGH">Alta</option>
           </select>
           <input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} placeholder="Responsável" className="bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground col-span-2" />
-          <button onClick={addCard} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">Adicionar</button>
+          <button onClick={save} className="col-span-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium">{editingId ? "Salvar Alterações" : "Adicionar"}</button>
         </div>
       )}
 
@@ -106,9 +144,7 @@ const CardsJira = () => {
                 <span className="text-xs text-muted-foreground">({filtered.filter((c) => c.status === status).length})</span>
               </div>
               <div className="space-y-3">
-                {filtered.filter((c) => c.status === status).length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum card</p>
-                )}
+                {filtered.filter((c) => c.status === status).length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum card</p>}
                 {filtered.filter((c) => c.status === status).map((card) => <CardItem key={card.id} card={card} />)}
               </div>
             </div>
@@ -118,20 +154,33 @@ const CardsJira = () => {
         <div className="space-y-2">
           {filtered.length === 0 && (
             <div className="bg-card border border-border rounded-lg p-8 text-center">
-              <p className="text-muted-foreground text-sm">Nenhum card cadastrado. Clique em "Novo Card" para começar.</p>
+              <p className="text-muted-foreground text-sm">Nenhum card cadastrado.</p>
             </div>
           )}
           {filtered.map((card) => (
             <div key={card.id} className="bg-card border border-border rounded-lg p-4 flex items-center gap-4">
-              <StatusDot color={statusColors[card.status]} />
+              <StatusDot color={statusColors[card.status as CardStatus]} />
               <span className="text-xs text-primary font-mono w-16">{card.key}</span>
               <span className="text-sm text-foreground flex-1">{card.title}</span>
               <PriorityBadge priority={card.priority} />
-              <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assigneeAvatar}</div>
+              <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
+              <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
+              <button onClick={() => setDeleteId(card.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
             </div>
           ))}
         </div>
       )}
+
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este card? Esta ação não pode ser desfeita.</p>
+          <DialogFooter>
+            <button onClick={() => setDeleteId(null)} className="px-4 py-2 text-sm rounded-md bg-secondary text-foreground">Cancelar</button>
+            <button onClick={confirmDelete} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground">Excluir</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

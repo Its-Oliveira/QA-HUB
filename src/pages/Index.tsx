@@ -1,14 +1,37 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { JiraCard, Reminder, AutomationEntry } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
 import StatusDot from "@/components/StatusDot";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const firstName = user?.email?.split("@")[0]?.split(".")[0] || "";
+  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
-  const cards: JiraCard[] = JSON.parse(localStorage.getItem("qa-hub-cards") || "[]");
-  const reminders: Reminder[] = JSON.parse(localStorage.getItem("qa-hub-reminders") || "[]");
-  const automation: AutomationEntry[] = JSON.parse(localStorage.getItem("qa-hub-automation") || "[]");
+  const { data: cards = [] } = useQuery({
+    queryKey: ["jira_cards"],
+    queryFn: async () => {
+      const { data } = await supabase.from("jira_cards").select("*");
+      return data || [];
+    },
+  });
+
+  const { data: reminders = [] } = useQuery({
+    queryKey: ["reminders"],
+    queryFn: async () => {
+      const { data } = await supabase.from("reminders").select("*");
+      return data || [];
+    },
+  });
+
+  const { data: automation = [] } = useQuery({
+    queryKey: ["automation_tracker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("automation_tracker").select("*");
+      return data || [];
+    },
+  });
 
   const cardsInReview = cards.filter((c) => c.status === "Em Revisão QA");
   const backlogCards = cards.filter((c) => c.status === "Backlog");
@@ -31,7 +54,7 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-foreground mb-6">Olá, {user?.name?.split(" ")[0]}</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6">Olá, {displayName}</h1>
 
       <div className="grid grid-cols-4 gap-4 mb-8">
         {stats.map((s) => (
@@ -55,7 +78,7 @@ const Dashboard = () => {
                 <div key={card.id} className="bg-card border border-border rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="text-sm font-semibold text-foreground">{card.key}: {card.title}</h3>
-                    <StatusDot color={getPriorityDotColor(card.priority)} label={card.timeIndicator} />
+                    <StatusDot color={getPriorityDotColor(card.priority)} label={card.time_indicator || undefined} />
                   </div>
                   <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{card.description}</p>
                 </div>
