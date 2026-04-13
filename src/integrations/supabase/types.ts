@@ -14,7 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      automation_tracker: {
+        Row: {
+          created_at: string
+          feature: string | null
+          id: string
+          last_run_date: string | null
+          notes: string | null
+          status: string
+          test_file: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature?: string | null
+          id?: string
+          last_run_date?: string | null
+          notes?: string | null
+          status?: string
+          test_file?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature?: string | null
+          id?: string
+          last_run_date?: string | null
+          notes?: string | null
+          status?: string
+          test_file?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jira_cards: {
+        Row: {
+          assignee: string | null
+          assignee_avatar: string | null
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          priority: string
+          status: string
+          time_indicator: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          assignee_avatar?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          priority?: string
+          status?: string
+          time_indicator?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          assignee_avatar?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          priority?: string
+          status?: string
+          time_indicator?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          category: string
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          jira_card_ref: string | null
+          priority: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          jira_card_ref?: string | null
+          priority?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          jira_card_ref?: string | null
+          priority?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      test_entries: {
+        Row: {
+          created_at: string
+          documentation: string | null
+          environment: string
+          feature_description: string | null
+          id: string
+          links: string[] | null
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          documentation?: string | null
+          environment?: string
+          feature_description?: string | null
+          id?: string
+          links?: string[] | null
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          documentation?: string | null
+          environment?: string
+          feature_description?: string | null
+          id?: string
+          links?: string[] | null
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
