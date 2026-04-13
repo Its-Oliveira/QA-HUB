@@ -140,7 +140,6 @@ const Lembretes = () => {
                   <span className={`text-[11px] px-2 py-0.5 rounded-md ${isOverdue(r) ? "bg-destructive/15 text-destructive font-medium" : "bg-secondary text-muted-foreground"}`}>
                     {new Date(r.due_date).toLocaleDateString("pt-BR")}
                   </span>
-                  </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{r.category}</span>
                   {r.jira_card_ref && (
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-mono">{r.jira_card_ref}</span>
