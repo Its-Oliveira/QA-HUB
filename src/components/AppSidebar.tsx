@@ -54,11 +54,11 @@ const AppSidebar = () => {
           Configurações
         </button>
         <button
-          onClick={logout}
+          onClick={() => logout()}
           className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-sidebar-foreground hover:text-destructive hover:bg-sidebar-accent transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          Logout
+          Sair
         </button>
       </div>
     </aside>
