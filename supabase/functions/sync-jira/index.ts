@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
 
     let synced = 0
     let skipped = 0
+    const unmappedStatuses = new Set<string>()
 
     for (const issue of issues) {
       const fields = issue.fields
@@ -77,6 +78,7 @@ Deno.serve(async (req) => {
       const mappedStatus = STATUS_MAP[statusName]
 
       if (!mappedStatus) {
+        unmappedStatuses.add(fields.status?.name || 'unknown')
         skipped++
         continue
       }
@@ -114,6 +116,7 @@ Deno.serve(async (req) => {
       total: issues.length, 
       synced, 
       skipped,
+      unmappedStatuses: Array.from(unmappedStatuses),
       message: `${synced} cards sincronizados, ${skipped} ignorados (status não mapeado)`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
