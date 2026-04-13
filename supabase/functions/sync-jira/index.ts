@@ -44,8 +44,8 @@ Deno.serve(async (req) => {
     }
 
     const auth = btoa(`${jiraEmail}:${jiraToken}`)
-    const jql = encodeURIComponent(`project = ${JIRA_PROJECT} ORDER BY created DESC`)
-    const url = `https://${JIRA_DOMAIN}/rest/api/3/search?jql=${jql}&maxResults=100&fields=summary,description,status,priority,assignee,created`
+    const jql = `project = ${JIRA_PROJECT} ORDER BY created DESC`
+    const url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=summary,description,status,priority,assignee,created`
 
     const jiraRes = await fetch(url, {
       headers: {
