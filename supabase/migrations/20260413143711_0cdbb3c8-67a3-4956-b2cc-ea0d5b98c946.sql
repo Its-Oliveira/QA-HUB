@@ -1,0 +1,1 @@
+ALTER TABLE public.reminders ADD COLUMN created_by TEXT;
