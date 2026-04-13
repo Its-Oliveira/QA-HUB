@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 const JIRA_DOMAIN = 'orcafascio.atlassian.net'
-const JIRA_PROJECT = 'BUG'
+const JIRA_PROJECTS = 'BUG, SUS'
 
 const STATUS_MAP: Record<string, string> = {
   'backlog': 'Backlog',
