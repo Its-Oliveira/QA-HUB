@@ -3,7 +3,7 @@ import { initialReminders, Reminder, Priority } from "@/data/mockData";
 import PriorityBadge from "@/components/PriorityBadge";
 import { Plus, Trash2, Check } from "lucide-react";
 
-const categories = ["Create Card", "Test Task", "Review", "Other"] as const;
+const categories = ["Criar Card", "Tarefa de Teste", "Revisão", "Outro"] as const;
 
 const Lembretes = () => {
   const [reminders, setReminders] = useState<Reminder[]>(() => {
