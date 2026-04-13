@@ -6,16 +6,21 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(email, password)) {
-      navigate("/");
-    } else {
+    setLoading(true);
+    setError("");
+    const err = await login(email, password);
+    if (err) {
       setError("Credenciais inválidas");
+    } else {
+      navigate("/");
     }
+    setLoading(false);
   };
 
   return (
@@ -37,7 +42,7 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="leonardo@qahub.com"
+              placeholder="seu@email.com"
             />
           </div>
           <div>
@@ -52,13 +57,11 @@ const Login = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+            disabled={loading}
+            className="w-full bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            Entrar
+            {loading ? "Entrando..." : "Entrar"}
           </button>
-          <p className="text-[11px] text-muted-foreground text-center mt-3">
-            Demo: leonardo@qahub.com / admin123
-          </p>
         </form>
       </div>
     </div>
