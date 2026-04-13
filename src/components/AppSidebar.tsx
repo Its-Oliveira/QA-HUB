@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LayoutDashboard, CreditCard, Bell, FlaskConical, Cog, LogOut, TestTube2 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
+  { label: "Painel", path: "/", icon: LayoutDashboard },
   { label: "Cards Jira", path: "/cards", icon: CreditCard },
   { label: "Lembretes", path: "/lembretes", icon: Bell },
   { label: "Testes", path: "/testes", icon: FlaskConical },
