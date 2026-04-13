@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { initialAutomation, AutomationEntry } from "@/data/mockData";
+import { Plus } from "lucide-react";
 
 const statusColors: Record<AutomationEntry["status"], string> = {
   Automated: "bg-success/20 text-success",
