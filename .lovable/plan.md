@@ -2,30 +2,43 @@
 
 ## Problema
 
-O workflow do GitHub Actions usa `${{ secrets.VITE_SUPABASE_URL }}`, que lê **Repository secrets**. Porém, os secrets foram configurados dentro de **Environment secrets** (ambientes `gh-pages` e `main`). Como o job não declara `environment:`, ele não consegue acessar esses secrets — resultando em variáveis vazias e no erro "supabaseUrl is required".
+O `basename="/QA-HUB"` funciona no GitHub Pages, mas quebra o preview do Lovable (que serve na raiz `/`).
 
-## Plano
+## Solução
 
-### 1. Adicionar `environment: github-pages` ao workflow (`.github/workflows/deploy.yml`)
+Tornar o `basename` condicional usando uma variável de ambiente do Vite. No Lovable preview, o basename será `"/"`. No GitHub Pages, será `"/QA-HUB"`.
 
-Adicionar a propriedade `environment` no job `deploy` para que ele acesse os secrets do environment correto:
+### 1. Alterar `src/App.tsx`
 
-```yaml
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: github-pages
-    steps:
-      ...
+Substituir:
+```tsx
+<BrowserRouter basename="/QA-HUB">
+```
+Por:
+```tsx
+<BrowserRouter basename={import.meta.env.BASE_URL}>
 ```
 
-Isso faz o workflow buscar os secrets dentro do environment `github-pages` onde você já os configurou.
+### 2. Alterar `vite.config.ts`
 
-### Alternativa (sem alterar código)
+Adicionar a propriedade `base` condicional:
+```ts
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/QA-HUB/' : '/',
+  // ... resto da config
+}))
+```
 
-Se preferir não alterar o workflow, vá no GitHub → Settings → Secrets and variables → Actions → **Repository secrets** (não environment secrets) e crie os dois secrets lá:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+### 3. Atualizar `.github/workflows/deploy.yml`
 
-Nesse caso, pode remover os duplicados dos environments para evitar confusão.
+No passo de build, garantir que o modo é `production`:
+```yaml
+- run: npm run build
+```
+(O `npm run build` já usa `mode: production` por padrão, então nada muda aqui.)
+
+### Resultado
+
+- **Lovable preview** (dev): `base = "/"` → funciona normalmente
+- **GitHub Pages** (build): `base = "/QA-HUB/"` → funciona no subpath
 
