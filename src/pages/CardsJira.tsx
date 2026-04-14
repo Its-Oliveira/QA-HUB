@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -16,6 +16,9 @@ const statusColors: Record<CardStatus, "warning" | "info" | "success"> = {
   "Em Revisão QA": "info",
   "Em Produção": "success",
 };
+
+const bugTypes = ["Bug QA", "Bug Cliente", "Bug Backoffice", "Bug Dev"] as const;
+type BugType = typeof bugTypes[number];
 
 const POLL_INTERVAL = 60_000;
 const emptyForm = { key: "", title: "", description: "", status: "Backlog" as CardStatus, priority: "MEDIUM" as Priority, assignee: "" };
@@ -33,6 +36,7 @@ const CardsJira = () => {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [filterStatus] = useState<CardStatus | "all">("all");
   const [filterPriority] = useState<Priority | "all">("all");
+  const [filterBugType, setFilterBugType] = useState<BugType | "all">("all");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -110,6 +114,7 @@ const CardsJira = () => {
   const filtered = cards.filter((c) => {
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
     if (filterPriority !== "all" && c.priority !== filterPriority) return false;
+    if (filterBugType !== "all" && (c as any).bug_type !== filterBugType) return false;
     return true;
   });
 
@@ -145,7 +150,18 @@ const CardsJira = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-end mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+          <select
+            value={filterBugType}
+            onChange={(e) => setFilterBugType(e.target.value as BugType | "all")}
+            className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="all">Todos os tipos</option>
+            {bugTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
