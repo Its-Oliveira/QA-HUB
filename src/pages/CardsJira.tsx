@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import PriorityBadge from "@/components/PriorityBadge";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, AlertTriangle } from "lucide-react";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -32,8 +31,8 @@ const CardsJira = () => {
   });
 
   const [view, setView] = useState<"kanban" | "list">("kanban");
-  const [filterStatus, setFilterStatus] = useState<CardStatus | "all">("all");
-  const [filterPriority, setFilterPriority] = useState<Priority | "all">("all");
+  const [filterStatus] = useState<CardStatus | "all">("all");
+  const [filterPriority] = useState<Priority | "all">("all");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
