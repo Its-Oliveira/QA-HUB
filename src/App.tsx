@@ -8,6 +8,7 @@ import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import CardsJira from "./pages/CardsJira";
+import CardDetail from "./pages/CardDetail";
 import Lembretes from "./pages/Lembretes";
 import Testes from "./pages/Testes";
 import Automacao from "./pages/Automacao";
@@ -31,6 +32,7 @@ const AppRoutes = () => {
       <Route path="/login" element={loading ? null : user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/cards" element={<ProtectedRoute><CardsJira /></ProtectedRoute>} />
+      <Route path="/cards/:key" element={<ProtectedRoute><CardDetail /></ProtectedRoute>} />
       <Route path="/lembretes" element={<ProtectedRoute><Lembretes /></ProtectedRoute>} />
       <Route path="/testes" element={<ProtectedRoute><Testes /></ProtectedRoute>} />
       <Route path="/automacao" element={<ProtectedRoute><Automacao /></ProtectedRoute>} />

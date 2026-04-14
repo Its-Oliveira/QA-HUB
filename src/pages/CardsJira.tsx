@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
@@ -22,6 +23,7 @@ const POLL_INTERVAL = 60_000;
 const emptyForm = { key: "", title: "", description: "", status: "Backlog" as CardStatus, priority: "MEDIUM" as Priority, assignee: "" };
 
 const CardsJira = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: cards = [] } = useQuery({
     queryKey: ["jira_cards"],
@@ -117,7 +119,7 @@ const CardsJira = () => {
   const CardItem = ({ card }: { card: any }) => (
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-start justify-between mb-2">
-        <span className="text-xs text-primary font-mono">{card.key}</span>
+        <span onClick={() => navigate(`/cards/${card.key}`)} className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</span>
         <div className="flex items-center gap-1">
           <PriorityBadge priority={card.priority} />
           <button onClick={() => startEdit(card)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
@@ -208,7 +210,7 @@ const CardsJira = () => {
           {filtered.map((card) => (
             <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
-              <span className="text-xs text-primary font-mono w-16">{card.key}</span>
+              <span onClick={() => navigate(`/cards/${card.key}`)} className="text-xs text-primary font-mono w-16 cursor-pointer hover:underline">{card.key}</span>
               <span className="text-sm text-foreground flex-1">{card.title}</span>
               <PriorityBadge priority={card.priority} />
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
