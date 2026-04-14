@@ -89,9 +89,22 @@ const Lembretes = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Lembretes</h1>
-        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
-          <Plus className="w-3 h-3" /> Novo Lembrete
-        </button>
+        <div className="flex items-center gap-2">
+          {completedReminders.length > 0 && (
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                showCompleted ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <CheckCircle className="w-3 h-3" />
+              {showCompleted ? "Ocultar concluídos" : `Concluídos (${completedReminders.length})`}
+            </button>
+          )}
+          <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
+            <Plus className="w-3 h-3" /> Novo Lembrete
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
