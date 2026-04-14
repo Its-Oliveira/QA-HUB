@@ -121,7 +121,6 @@ const CardsJira = () => {
       <div className="flex items-start justify-between mb-2">
         <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
         <div className="flex items-center gap-1">
-          <PriorityBadge priority={card.priority} />
           <button onClick={() => startEdit(card)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
           {confirmDeleteId === card.id ? (
             <div className="flex items-center gap-1 ml-1">
@@ -147,20 +146,7 @@ const CardsJira = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-foreground">Cards Jira</h1>
-          {/* Last sync indicator */}
-          <div className="flex items-center gap-1.5">
-            {syncError && <AlertTriangle className="w-3.5 h-3.5 text-destructive" />}
-            {lastSync && (
-              <span className="text-[11px] text-muted-foreground">
-                Última sync: {lastSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-            {syncing && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-          </div>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <div className="flex items-center gap-2">
           <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
@@ -173,16 +159,6 @@ const CardsJira = () => {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-6">
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as CardStatus | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-xs text-foreground">
-          <option value="all">Todos Status</option>
-          {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as Priority | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-xs text-foreground">
-          <option value="all">Todas Prioridades</option>
-          <option value="HIGH">Alta</option><option value="MEDIUM">Média</option><option value="LOW">Baixa</option>
-        </select>
-      </div>
 
       {view === "kanban" ? (
         <div className="grid grid-cols-3 gap-6">
@@ -194,7 +170,6 @@ const CardsJira = () => {
                 <span className="text-xs text-muted-foreground">({filtered.filter((c) => c.status === status).length})</span>
               </div>
               <div className="space-y-3">
-                {filtered.filter((c) => c.status === status).length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum card</p>}
                 {filtered.filter((c) => c.status === status).map((card) => <CardItem key={card.id} card={card} />)}
               </div>
             </div>
@@ -202,17 +177,11 @@ const CardsJira = () => {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.length === 0 && (
-            <div className="bg-card border border-border rounded-xl p-8 text-center">
-              <p className="text-muted-foreground text-sm">Nenhum card cadastrado.</p>
-            </div>
-          )}
           {filtered.map((card) => (
             <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
-              <a href={`https://orcafascio.atlassian.net/browse/${card.key}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono w-16 cursor-pointer hover:underline">{card.key}</a>
-              <a href={`https://orcafascio.atlassian.net/browse/${card.key}`} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground flex-1 cursor-pointer hover:underline">{card.title}</a>
-              <PriorityBadge priority={card.priority} />
+              <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono w-16 cursor-pointer hover:underline">{card.key}</a>
+              <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground flex-1 cursor-pointer hover:underline">{card.title}</a>
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
               <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
               {confirmDeleteId === card.id ? (
