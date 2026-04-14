@@ -99,6 +99,7 @@ export type Database = {
         Row: {
           category: string
           completed: boolean
+          completed_at: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -112,6 +113,7 @@ export type Database = {
         Insert: {
           category?: string
           completed?: boolean
+          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -125,6 +127,7 @@ export type Database = {
         Update: {
           category?: string
           completed?: boolean
+          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -178,7 +181,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_completed_reminders: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
