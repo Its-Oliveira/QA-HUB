@@ -8,6 +8,9 @@ const corsHeaders = {
 const JIRA_DOMAIN = 'orcafascio.atlassian.net'
 const JIRA_PROJECT = 'BUG'
 
+// Only fetch the 3 statuses we care about — avoids fetching thousands of irrelevant issues
+const JIRA_STATUSES = ['Backlog', 'Em Revisão QA', 'Em Produção']
+
 const STATUS_MAP: Record<string, string> = {
   'backlog': 'Backlog',
   'em revisão qa': 'Em Revisão QA',
@@ -32,10 +35,15 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
   const allIssues: any[] = []
   let startAt = 0
   const maxResults = 100
-  const jql = `project = ${JIRA_PROJECT} AND issuetype != Sub-task ORDER BY created DESC`
+
+  // Filter by project, mapped statuses, and exclude subtasks
+  const statusFilter = JIRA_STATUSES.map(s => `"${s}"`).join(', ')
+  const jql = `project = ${JIRA_PROJECT} AND status IN (${statusFilter}) AND issuetype != Sub-task ORDER BY created DESC`
+
+  console.log(`JQL: ${jql}`)
 
   while (true) {
-    const url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&startAt=${startAt}&fields=summary,description,status,priority,assignee,created`
+    const url = `https://${JIRA_DOMAIN}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&startAt=${startAt}&fields=summary,description,status,priority,assignee,created`
 
     const res = await fetch(url, {
       headers: {
@@ -51,11 +59,12 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
 
     const data = await res.json()
     const issues = data.issues || []
+    const total = data.total || 0
     allIssues.push(...issues)
 
-    console.log(`Fetched page: startAt=${startAt}, received=${issues.length}, total=${data.total}`)
+    console.log(`Fetched page: startAt=${startAt}, received=${issues.length}, total=${total}`)
 
-    if (startAt + issues.length >= data.total || issues.length === 0) break
+    if (startAt + issues.length >= total || issues.length === 0) break
     startAt += maxResults
   }
 
@@ -93,20 +102,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     let synced = 0
-    let skipped = 0
     const syncedKeys: string[] = []
-    const unmappedStatuses = new Set<string>()
 
     for (const issue of allIssues) {
       const fields = issue.fields
       const statusName = fields.status?.name?.toLowerCase() || ''
-      const mappedStatus = STATUS_MAP[statusName]
-
-      if (!mappedStatus) {
-        unmappedStatuses.add(fields.status?.name || 'unknown')
-        skipped++
-        continue
-      }
+      const mappedStatus = STATUS_MAP[statusName] || 'Backlog'
 
       const priorityName = fields.priority?.name?.toLowerCase() || 'medium'
       const mappedPriority = PRIORITY_MAP[priorityName] || 'MEDIUM'
@@ -138,44 +139,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Remove stale jira-synced cards that no longer exist in Jira response
+    // Remove stale jira-synced cards that no longer appear in the response
+    let removed = 0
     if (syncedKeys.length > 0) {
-      const { data: deleted, error: delError } = await supabase
+      const { data: deleted } = await supabase
         .from('jira_cards')
         .delete()
         .eq('jira_synced', true)
         .not('key', 'in', `(${syncedKeys.join(',')})`)
         .select('key')
-
-      const removedCount = deleted?.length || 0
-      if (removedCount > 0) {
-        console.log(`Removed ${removedCount} stale cards: ${deleted?.map((d: any) => d.key).join(', ')}`)
-      }
-      if (delError) {
-        console.error('Error removing stale cards:', delError)
-      }
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        total: allIssues.length, 
-        synced, 
-        skipped,
-        removed: removedCount,
-        unmappedStatuses: Array.from(unmappedStatuses),
-        message: `${synced} sincronizados, ${skipped} ignorados, ${removedCount} removidos`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      removed = deleted?.length || 0
+      if (removed > 0) console.log(`Removed ${removed} stale cards: ${deleted?.map((d: any) => d.key).join(', ')}`)
+    } else {
+      // No issues found with mapped statuses — remove all synced cards
+      const { data: deleted } = await supabase
+        .from('jira_cards')
+        .delete()
+        .eq('jira_synced', true)
+        .select('key')
+      removed = deleted?.length || 0
     }
 
     return new Response(JSON.stringify({ 
       success: true, 
       total: allIssues.length, 
       synced, 
-      skipped,
-      removed: 0,
-      unmappedStatuses: Array.from(unmappedStatuses),
-      message: `${synced} sincronizados, ${skipped} ignorados`
+      removed,
+      message: `${synced} sincronizados, ${removed} removidos`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
