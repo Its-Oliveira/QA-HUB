@@ -30,6 +30,13 @@ const PRIORITY_MAP: Record<string, string> = {
   'lowest': 'LOW',
 }
 
+const BUG_TYPE_MAP: Record<string, string> = {
+  'bug qa': 'Bug QA',
+  'bug cliente': 'Bug Cliente',
+  'bug backoffice': 'Bug Backoffice',
+  'bug dev': 'Bug Dev',
+}
+
 async function fetchAllIssues(auth: string): Promise<any[]> {
   const allIssues: any[] = []
   const maxResults = 100
@@ -41,7 +48,7 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
   console.log(`JQL: ${jql}`)
 
   while (true) {
-    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,description,status,priority,assignee,created`
+    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,description,status,priority,assignee,created,issuetype`
     if (nextPageToken) {
       url += `&nextPageToken=${encodeURIComponent(nextPageToken)}`
     }
@@ -115,6 +122,9 @@ Deno.serve(async (req) => {
       const assigneeName = fields.assignee?.displayName || ''
       const avatar = assigneeName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
 
+      const issueTypeName = fields.issuetype?.name?.toLowerCase() || ''
+      const mappedBugType = BUG_TYPE_MAP[issueTypeName] || ''
+
       let description = ''
       if (fields.description?.content) {
         description = fields.description.content
@@ -131,6 +141,7 @@ Deno.serve(async (req) => {
         assignee: assigneeName,
         assignee_avatar: avatar,
         jira_synced: true,
+        bug_type: mappedBugType,
       }, { onConflict: 'key' })
 
       if (!error) {
