@@ -150,7 +150,18 @@ const CardsJira = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-end mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+          <select
+            value={filterBugType}
+            onChange={(e) => setFilterBugType(e.target.value as BugType | "all")}
+            className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="all">Todos os tipos</option>
+            {bugTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
@@ -160,6 +171,7 @@ const CardsJira = () => {
           </button>
           <button onClick={() => setView("kanban")} className={`p-1.5 rounded ${view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
           <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="w-4 h-4" /></button>
+        </div>
         </div>
       </div>
 
