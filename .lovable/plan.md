@@ -2,24 +2,30 @@
 
 ## Problema
 
-O `BrowserRouter` no `App.tsx` não tem `basename="/QA-HUB/"`. Quando o GitHub Pages serve o app em `/QA-HUB/`, o React Router tenta resolver as rotas a partir de `/`, o que causa página em branco ou 404.
+O workflow do GitHub Actions usa `${{ secrets.VITE_SUPABASE_URL }}`, que lê **Repository secrets**. Porém, os secrets foram configurados dentro de **Environment secrets** (ambientes `gh-pages` e `main`). Como o job não declara `environment:`, ele não consegue acessar esses secrets — resultando em variáveis vazias e no erro "supabaseUrl is required".
 
 ## Plano
 
-### 1. Adicionar basename ao BrowserRouter (`src/App.tsx`)
+### 1. Adicionar `environment: github-pages` ao workflow (`.github/workflows/deploy.yml`)
 
-Alterar a linha 49:
-```tsx
-<BrowserRouter basename="/QA-HUB">
+Adicionar a propriedade `environment` no job `deploy` para que ele acesse os secrets do environment correto:
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      ...
 ```
 
-Isso faz com que todas as rotas (`/login`, `/cards`, etc.) funcionem corretamente sob o prefixo `/QA-HUB/`.
+Isso faz o workflow buscar os secrets dentro do environment `github-pages` onde você já os configurou.
 
-### 2. Verificar se os secrets do GitHub Actions estão configurados
+### Alternativa (sem alterar código)
 
-Confirmar que no repositório `its-oliveira/QA-HUB` existem os secrets:
-- `VITE_SUPABASE_URL` → `https://kdmruvwgxepwiwppuzlj.supabase.co`
-- `VITE_SUPABASE_PUBLISHABLE_KEY` → a chave anon
+Se preferir não alterar o workflow, vá no GitHub → Settings → Secrets and variables → Actions → **Repository secrets** (não environment secrets) e crie os dois secrets lá:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Após o push, o workflow fará o deploy automático.
+Nesse caso, pode remover os duplicados dos environments para evitar confusão.
 
