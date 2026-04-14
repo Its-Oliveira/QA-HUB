@@ -64,7 +64,9 @@ const Lembretes = () => {
   };
 
   const toggleComplete = async (id: string, current: boolean) => {
-    await supabase.from("reminders").update({ completed: !current }).eq("id", id);
+    const updates: any = { completed: !current };
+    updates.completed_at = !current ? new Date().toISOString() : null;
+    await supabase.from("reminders").update(updates).eq("id", id);
     queryClient.invalidateQueries({ queryKey: ["reminders"] });
   };
 
