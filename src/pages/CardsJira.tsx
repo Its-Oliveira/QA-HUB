@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -16,6 +16,9 @@ const statusColors: Record<CardStatus, "warning" | "info" | "success"> = {
   "Em Revisão QA": "info",
   "Em Produção": "success",
 };
+
+const bugTypes = ["Bug QA", "Bug Cliente", "Bug Backoffice", "Bug Dev"] as const;
+type BugType = typeof bugTypes[number];
 
 const POLL_INTERVAL = 60_000;
 const emptyForm = { key: "", title: "", description: "", status: "Backlog" as CardStatus, priority: "MEDIUM" as Priority, assignee: "" };
@@ -33,7 +36,7 @@ const CardsJira = () => {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [filterStatus] = useState<CardStatus | "all">("all");
   const [filterPriority] = useState<Priority | "all">("all");
-  const [showModal, setShowModal] = useState(false);
+  const [filterBugType, setFilterBugType] = useState<BugType | "all">("all");
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -110,6 +113,7 @@ const CardsJira = () => {
   const filtered = cards.filter((c) => {
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
     if (filterPriority !== "all" && c.priority !== filterPriority) return false;
+    if (filterBugType !== "all" && (c as any).bug_type !== filterBugType) return false;
     return true;
   });
 
