@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PriorityBadge from "@/components/PriorityBadge";
 import StatusDot from "@/components/StatusDot";
-import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+
 type CardStatus = "Backlog" | "Em Revisão QA" | "Em Produção";
 type Priority = "HIGH" | "MEDIUM" | "LOW";
 
@@ -16,6 +18,7 @@ const statusColors: Record<CardStatus, "warning" | "info" | "success"> = {
   "Em Produção": "success",
 };
 
+const POLL_INTERVAL = 60_000;
 const emptyForm = { key: "", title: "", description: "", status: "Backlog" as CardStatus, priority: "MEDIUM" as Priority, assignee: "" };
 
 const CardsJira = () => {
@@ -36,23 +39,45 @@ const CardsJira = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [syncError, setSyncError] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const openNew = () => { setForm(emptyForm); setEditingId(null); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditingId(null); setForm(emptyForm); };
 
-  const syncJira = async () => {
+  const syncJira = useCallback(async (silent = false) => {
+    if (syncing) return;
     setSyncing(true);
+    setSyncError(false);
     try {
       const { data, error } = await supabase.functions.invoke("sync-jira");
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["jira_cards"] });
-      toast.success(data.message || `${data.synced} cards sincronizados`);
+      setLastSync(new Date());
+      if (!silent) toast.success(data.message || `${data.synced} cards sincronizados`);
     } catch (err: any) {
-      toast.error("Erro ao sincronizar: " + (err.message || "erro desconhecido"));
+      setSyncError(true);
+      if (!silent) toast.error("Erro ao sincronizar: " + (err.message || "erro desconhecido"));
     } finally {
       setSyncing(false);
     }
-  };
+  }, [syncing, queryClient]);
+
+  // Auto-polling every 60s
+  useEffect(() => {
+    // Initial sync on mount
+    syncJira(true);
+
+    intervalRef.current = setInterval(() => {
+      syncJira(true);
+    }, POLL_INTERVAL);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const save = async () => {
     if (!form.key || !form.title) {
@@ -121,12 +146,24 @@ const CardsJira = () => {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Cards Jira</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold text-foreground">Cards Jira</h1>
+          {/* Last sync indicator */}
+          <div className="flex items-center gap-1.5">
+            {syncError && <AlertTriangle className="w-3.5 h-3.5 text-destructive" />}
+            {lastSync && (
+              <span className="text-[11px] text-muted-foreground">
+                Última sync: {lastSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+            {syncing && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
           </button>
-          <button onClick={syncJira} disabled={syncing} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-foreground border border-border hover:bg-accent transition-colors disabled:opacity-50">
+          <button onClick={() => syncJira(false)} disabled={syncing} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-foreground border border-border hover:bg-accent transition-colors disabled:opacity-50">
             {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} {syncing ? "Sincronizando..." : "Sincronizar com Jira"}
           </button>
           <button onClick={() => setView("kanban")} className={`p-1.5 rounded ${view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
@@ -190,9 +227,9 @@ const CardsJira = () => {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl max-w-md p-0 gap-0">
+          <VisuallyHidden><DialogTitle>{editingId ? "Editar Card" : "Novo Card"}</DialogTitle></VisuallyHidden>
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2d38]">
             <h2 className="text-base font-semibold text-foreground">{editingId ? "Editar Card" : "Novo Card"}</h2>
             <button onClick={closeModal} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -201,44 +238,16 @@ const CardsJira = () => {
           </div>
           <div className="px-5 py-4 flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
-              <input
-                value={form.key}
-                onChange={(e) => setForm({ ...form, key: e.target.value })}
-                placeholder="ID (ex: QA-101)"
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <input
-                value={form.assignee}
-                onChange={(e) => setForm({ ...form, assignee: e.target.value })}
-                placeholder="Responsável"
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <input value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} placeholder="ID (ex: QA-101)" className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+              <input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} placeholder="Responsável" className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Título"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Descrição"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título" className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+            <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição" className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
             <div className="grid grid-cols-2 gap-3">
-              <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as CardStatus })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              >
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as CardStatus })} className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
                 {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              <select
-                value={form.priority}
-                onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              >
+              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
                 <option value="LOW">Baixa</option>
                 <option value="MEDIUM">Média</option>
                 <option value="HIGH">Alta</option>
@@ -246,10 +255,7 @@ const CardsJira = () => {
             </div>
           </div>
           <div className="px-5 pb-5">
-            <button
-              onClick={save}
-              className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-            >
+            <button onClick={save} className="w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity">
               {editingId ? "Salvar Alterações" : "Criar Card"}
             </button>
           </div>
