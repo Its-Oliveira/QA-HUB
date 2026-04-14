@@ -22,6 +22,7 @@ const emptyForm = { title: "", description: "", category: "Outro" as Category, p
 const Lembretes = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [showCompleted, setShowCompleted] = useState(false);
   const { data: rawReminders = [] } = useQuery({
     queryKey: ["reminders"],
     queryFn: async () => {
@@ -30,11 +31,9 @@ const Lembretes = () => {
     },
   });
 
-  // Sort: incomplete first (by due_date), completed at bottom
-  const reminders = [...rawReminders].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const activeReminders = rawReminders.filter((r) => !r.completed);
+  const completedReminders = rawReminders.filter((r) => r.completed);
+  const reminders = showCompleted ? completedReminders : activeReminders;
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
