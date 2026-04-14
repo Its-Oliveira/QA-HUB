@@ -22,6 +22,7 @@ const emptyForm = { title: "", description: "", category: "Outro" as Category, p
 const Lembretes = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [showCompleted, setShowCompleted] = useState(false);
   const { data: rawReminders = [] } = useQuery({
     queryKey: ["reminders"],
     queryFn: async () => {
@@ -30,11 +31,9 @@ const Lembretes = () => {
     },
   });
 
-  // Sort: incomplete first (by due_date), completed at bottom
-  const reminders = [...rawReminders].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const activeReminders = rawReminders.filter((r) => !r.completed);
+  const completedReminders = rawReminders.filter((r) => r.completed);
+  const reminders = showCompleted ? completedReminders : activeReminders;
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -65,7 +64,9 @@ const Lembretes = () => {
   };
 
   const toggleComplete = async (id: string, current: boolean) => {
-    await supabase.from("reminders").update({ completed: !current }).eq("id", id);
+    const updates: any = { completed: !current };
+    updates.completed_at = !current ? new Date().toISOString() : null;
+    await supabase.from("reminders").update(updates).eq("id", id);
     queryClient.invalidateQueries({ queryKey: ["reminders"] });
   };
 
@@ -88,9 +89,22 @@ const Lembretes = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Lembretes</h1>
-        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
-          <Plus className="w-3 h-3" /> Novo Lembrete
-        </button>
+        <div className="flex items-center gap-2">
+          {completedReminders.length > 0 && (
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                showCompleted ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <CheckCircle className="w-3 h-3" />
+              {showCompleted ? "Ocultar concluídos" : `Concluídos (${completedReminders.length})`}
+            </button>
+          )}
+          <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
+            <Plus className="w-3 h-3" /> Novo Lembrete
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
