@@ -8,7 +8,6 @@ const corsHeaders = {
 const JIRA_DOMAIN = 'orcafascio.atlassian.net'
 const JIRA_PROJECT = 'BUG'
 
-// Only fetch the 3 statuses we care about — avoids fetching thousands of irrelevant issues
 const JIRA_STATUSES = ['Backlog', 'Em Revisão QA', 'Em Produção']
 
 const STATUS_MAP: Record<string, string> = {
@@ -33,17 +32,19 @@ const PRIORITY_MAP: Record<string, string> = {
 
 async function fetchAllIssues(auth: string): Promise<any[]> {
   const allIssues: any[] = []
-  let startAt = 0
   const maxResults = 100
+  let nextPageToken: string | undefined = undefined
 
-  // Filter by project, mapped statuses, and exclude subtasks
   const statusFilter = JIRA_STATUSES.map(s => `"${s}"`).join(', ')
   const jql = `project = ${JIRA_PROJECT} AND status IN (${statusFilter}) AND issuetype != Sub-task ORDER BY created DESC`
 
   console.log(`JQL: ${jql}`)
 
   while (true) {
-    const url = `https://${JIRA_DOMAIN}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&startAt=${startAt}&fields=summary,description,status,priority,assignee,created`
+    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,description,status,priority,assignee,created`
+    if (nextPageToken) {
+      url += `&nextPageToken=${encodeURIComponent(nextPageToken)}`
+    }
 
     const res = await fetch(url, {
       headers: {
@@ -59,13 +60,12 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
 
     const data = await res.json()
     const issues = data.issues || []
-    const total = data.total || 0
     allIssues.push(...issues)
 
-    console.log(`Fetched page: startAt=${startAt}, received=${issues.length}, total=${total}`)
+    console.log(`Fetched page: received=${issues.length}, total so far=${allIssues.length}, hasNextPage=${!!data.nextPageToken}`)
 
-    if (startAt + issues.length >= total || issues.length === 0) break
-    startAt += maxResults
+    if (!data.nextPageToken || issues.length === 0) break
+    nextPageToken = data.nextPageToken
   }
 
   // Deduplicate by key
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Remove stale jira-synced cards that no longer appear in the response
+    // Remove stale jira-synced cards no longer in Jira response
     let removed = 0
     if (syncedKeys.length > 0) {
       const { data: deleted } = await supabase
@@ -149,9 +149,8 @@ Deno.serve(async (req) => {
         .not('key', 'in', `(${syncedKeys.join(',')})`)
         .select('key')
       removed = deleted?.length || 0
-      if (removed > 0) console.log(`Removed ${removed} stale cards: ${deleted?.map((d: any) => d.key).join(', ')}`)
+      if (removed > 0) console.log(`Removed ${removed} stale cards`)
     } else {
-      // No issues found with mapped statuses — remove all synced cards
       const { data: deleted } = await supabase
         .from('jira_cards')
         .delete()
