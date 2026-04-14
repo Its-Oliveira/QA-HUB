@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           assignee: string | null
           assignee_avatar: string | null
+          bug_type: string | null
           created_at: string
           description: string | null
           id: string
@@ -65,6 +66,7 @@ export type Database = {
         Insert: {
           assignee?: string | null
           assignee_avatar?: string | null
+          bug_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -79,6 +81,7 @@ export type Database = {
         Update: {
           assignee?: string | null
           assignee_avatar?: string | null
+          bug_type?: string | null
           created_at?: string
           description?: string | null
           id?: string

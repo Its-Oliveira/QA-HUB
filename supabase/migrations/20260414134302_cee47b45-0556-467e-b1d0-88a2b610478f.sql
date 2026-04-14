@@ -1,0 +1,1 @@
+ALTER TABLE public.jira_cards ADD COLUMN bug_type text DEFAULT '';
