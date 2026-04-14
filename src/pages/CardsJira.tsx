@@ -37,6 +37,7 @@ const CardsJira = () => {
   const [filterStatus] = useState<CardStatus | "all">("all");
   const [filterPriority] = useState<Priority | "all">("all");
   const [filterBugType, setFilterBugType] = useState<BugType | "all">("all");
+  const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
