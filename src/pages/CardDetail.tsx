@@ -84,13 +84,6 @@ const CardDetail = () => {
   const { data: issue, isLoading, error } = useQuery<JiraIssue>({
     queryKey: ["jira_issue", key],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("get-jira-issue", {
-        body: null,
-        headers: {},
-        method: "GET",
-      });
-      // supabase.functions.invoke doesn't support query params, so we use a workaround
-      // Actually, let's use POST with body
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-jira-issue?key=${encodeURIComponent(key!)}`,
         {
