@@ -46,7 +46,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/QA-HUB">
           <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
