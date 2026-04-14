@@ -114,10 +114,12 @@ const CardsJira = () => {
     return true;
   });
 
+  const jiraUrl = (key: string) => `https://orcafascio.atlassian.net/browse/${key}`;
+
   const CardItem = ({ card }: { card: any }) => (
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-start justify-between mb-2">
-        <span className="text-xs text-primary font-mono">{card.key}</span>
+        <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
         <div className="flex items-center gap-1">
           <PriorityBadge priority={card.priority} />
           <button onClick={() => startEdit(card)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
@@ -132,7 +134,7 @@ const CardsJira = () => {
           )}
         </div>
       </div>
-      <h3 className="text-sm font-semibold text-foreground mb-1">{card.title}</h3>
+      <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-foreground mb-1 block cursor-pointer hover:underline">{card.title}</a>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{card.description}</p>
       <div className="flex items-center justify-between">
         <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
@@ -208,8 +210,8 @@ const CardsJira = () => {
           {filtered.map((card) => (
             <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
-              <span className="text-xs text-primary font-mono w-16">{card.key}</span>
-              <span className="text-sm text-foreground flex-1">{card.title}</span>
+              <a href={`https://orcafascio.atlassian.net/browse/${card.key}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono w-16 cursor-pointer hover:underline">{card.key}</a>
+              <a href={`https://orcafascio.atlassian.net/browse/${card.key}`} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground flex-1 cursor-pointer hover:underline">{card.title}</a>
               <PriorityBadge priority={card.priority} />
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
               <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
