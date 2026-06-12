@@ -9,7 +9,7 @@ import { useTimeFilter } from "@/hooks/useTimeFilter";
 import { useReportData } from "@/hooks/useReportData";
 import { AVAILABLE_FIELDS, getDefaultFieldIds, useReportConfig } from "@/hooks/useReportConfig";
 import type { ReportConfig, TimeFilter } from "@/types/reports.types";
-import { diffDays } from "@/utils/reportDateUtils";
+import { diffDays, resolvePresetDates } from "@/utils/reportDateUtils";
 
 const ReportsPage = () => {
   const { filter, setFilter } = useTimeFilter("last_month");
@@ -66,8 +66,6 @@ const ReportsPage = () => {
       const to = new Date(tf.customRange.to);
       setFilter({ preset: "custom", customRange: { from, to }, resolvedFrom: from, resolvedTo: to } as TimeFilter);
     } else {
-      // re-resolve preset
-      const { resolvePresetDates } = require("@/utils/reportDateUtils");
       const r = resolvePresetDates(tf.preset);
       setFilter({ preset: tf.preset, resolvedFrom: r.from, resolvedTo: r.to } as TimeFilter);
     }
