@@ -7,12 +7,24 @@ const corsHeaders = {
 };
 
 const JIRA_DOMAIN = "orcafascio.atlassian.net";
-const JIRA_PROJECT = "BUG";
+const JIRA_PROJECT = '"Bugs OrçaFascio"';
+const JIRA_ISSUETYPE = '"BUG cliente"';
+const JIRA_STATUSES = [
+  "Backlog",
+  "Não Iniciado",
+  "Em Desenvolvimento",
+  "Merge Request",
+  "Revisão QA",
+  "Reprovado QA",
+  "Revert",
+];
 
 async function fetchAllIssues(auth: string): Promise<any[]> {
   const all: any[] = [];
   let nextPageToken: string | undefined;
-  const jql = `project = ${JIRA_PROJECT} AND statusCategory != Done ORDER BY created DESC`;
+  const statusList = JIRA_STATUSES.map((s) => `"${s}"`).join(", ");
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${JIRA_ISSUETYPE} AND status in (${statusList}) ORDER BY created DESC`;
+  console.log("JQL:", jql);
   const fields = "summary,status,labels,components,created,issuetype";
 
   while (true) {
