@@ -4,7 +4,6 @@ export type WeeklyStatus =
   | "Em Desenvolvimento"
   | "Merge Request"
   | "Revisão QA"
-  | "Aprovado QA"
   | "Reprovado QA"
   | "Revert";
 
@@ -14,7 +13,6 @@ export const WEEKLY_STATUS_ORDER: WeeklyStatus[] = [
   "Em Desenvolvimento",
   "Merge Request",
   "Revisão QA",
-  "Aprovado QA",
   "Reprovado QA",
   "Revert",
 ];
