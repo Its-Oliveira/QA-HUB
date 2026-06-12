@@ -27,7 +27,7 @@ function mapStatus(raw: string): WeeklyStatus | string {
   if (["em desenvolvimento", "in progress", "desenvolvimento"].includes(n)) return "Em Desenvolvimento";
   if (["merge request", "code review", "in review"].includes(n)) return "Merge Request";
   if (["revisao qa", "em revisao qa", "qa review", "in qa", "em revisao"].includes(n)) return "Revisão QA";
-  if (["aprovado qa", "qa approved", "approved qa"].includes(n)) return "Aprovado QA";
+  if (["aprovado qa", "qa approved", "approved qa"].includes(n)) return "Aprovado QA" as any;
   if (["reprovado qa", "qa reprovado", "qa rejected", "qa failed"].includes(n)) return "Reprovado QA";
   if (n === "revert") return "Revert";
   return raw;
