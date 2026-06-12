@@ -9,7 +9,6 @@ const OLD_STATUSES = new Set<WeeklyStatus>([
   "Em Desenvolvimento",
   "Merge Request",
   "Revisão QA",
-  "Aprovado QA",
   "Reprovado QA",
   "Revert",
 ]);
