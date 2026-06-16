@@ -48,7 +48,7 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
   console.log(`JQL: ${jql}`)
 
   while (true) {
-    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,description,status,priority,assignee,created,issuetype`
+    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=summary,description,status,priority,assignee,created,issuetype,issuelinks`
     if (nextPageToken) {
       url += `&nextPageToken=${encodeURIComponent(nextPageToken)}`
     }
@@ -132,6 +132,8 @@ Deno.serve(async (req) => {
           .join(' ')
       }
 
+      const issueLinks = Array.isArray(fields.issuelinks) ? fields.issuelinks : []
+
       const { error } = await supabase.from('jira_cards').upsert({
         key: issue.key,
         title: fields.summary || issue.key,
@@ -142,6 +144,7 @@ Deno.serve(async (req) => {
         assignee_avatar: avatar,
         jira_synced: true,
         bug_type: mappedBugType,
+        issue_links: issueLinks,
       }, { onConflict: 'key' })
 
       if (!error) {

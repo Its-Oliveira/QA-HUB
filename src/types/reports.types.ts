@@ -17,6 +17,8 @@ export const WEEKLY_STATUS_ORDER: WeeklyStatus[] = [
   "Revert",
 ];
 
+import type { JiraIssueLink } from "./jira";
+
 export interface JiraIssue {
   key: string;
   url: string;
@@ -26,6 +28,7 @@ export interface JiraIssue {
   components: string[];
   created: string | null;
   isBim: boolean;
+  issuelinks?: JiraIssueLink[];
 }
 
 export interface WeeklyReportData {
