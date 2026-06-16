@@ -22,3 +22,18 @@ export function formatIssueLinksTooltip(issuelinks: JiraIssueLink[]): string {
     })
     .join("\n");
 }
+
+/**
+ * Formata a URL de um card para exportação,
+ * adicionando "[Vinculado]" ao final se o card possui vínculos.
+ */
+export function formatUrlForExport(
+  url: string,
+  issuelinks?: JiraIssueLink[] | null
+): string {
+  if (!url) return url;
+  if (hasIssueLinks(issuelinks)) {
+    return `${url} [Vinculado]`;
+  }
+  return url;
+}
