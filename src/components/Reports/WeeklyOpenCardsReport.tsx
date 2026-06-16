@@ -1,6 +1,7 @@
 import type { WeeklyReportData } from "@/types/reports.types";
 import { WEEKLY_STATUS_ORDER } from "@/types/reports.types";
 import { fmtDate, fmtDateTime, fmtShort } from "@/utils/reportFormatters";
+import { IssueLinkIcon } from "@/components/jira/IssueLinkIcon";
 
 const statusBadgeClass: Record<string, string> = {
   Backlog: "bg-secondary text-muted-foreground border-border",
@@ -110,6 +111,7 @@ const WeeklyOpenCardsReport = ({ data }: { data: WeeklyReportData }) => {
                         >
                           {i.url}
                         </a>
+                        <IssueLinkIcon issuelinks={i.issuelinks} />
                         {i.isBim && (
                           <span className="ml-2 text-orange-400 font-sans">(OrçaBim)</span>
                         )}
@@ -150,6 +152,7 @@ const WeeklyOpenCardsReport = ({ data }: { data: WeeklyReportData }) => {
                         >
                           {i.url}
                         </a>
+                        <IssueLinkIcon issuelinks={i.issuelinks} />
                         {i.isBim && (
                           <span className="ml-2 text-orange-400 font-sans">(OrçaBim)</span>
                         )}

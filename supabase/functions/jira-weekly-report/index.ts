@@ -25,7 +25,7 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
   const statusList = JIRA_STATUSES.map((s) => `"${s}"`).join(", ");
   const jql = `project = ${JIRA_PROJECT} AND issuetype = ${JIRA_ISSUETYPE} AND status in (${statusList}) ORDER BY created DESC`;
   console.log("JQL:", jql);
-  const fields = "summary,status,labels,components,created,issuetype";
+  const fields = "summary,status,labels,components,created,issuetype,issuelinks";
 
   while (true) {
     let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(
@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
       components: (i.fields?.components || []).map((c: any) => c.name),
       created: i.fields?.created || null,
       issuetype: i.fields?.issuetype?.name || "",
+      issuelinks: Array.isArray(i.fields?.issuelinks) ? i.fields.issuelinks : [],
     }));
 
     return new Response(JSON.stringify({ issues: simplified, total: simplified.length }), {

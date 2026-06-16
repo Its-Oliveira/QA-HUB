@@ -1,0 +1,1 @@
+ALTER TABLE public.jira_cards ADD COLUMN IF NOT EXISTS issue_links jsonb NOT NULL DEFAULT '[]'::jsonb;
