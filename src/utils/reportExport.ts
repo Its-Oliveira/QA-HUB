@@ -123,7 +123,7 @@ export function exportWeeklyAsPdf(data: WeeklyReportData) {
     startY: y + 2,
     head: [["Status", "Issue", "URL", "BIM"]],
     body: WEEKLY_STATUS_ORDER.flatMap((st) =>
-      (data.thisWeekCards.byStatus[st] || []).map((i) => [st, i.key, i.url, i.isBim ? "Sim" : ""])
+      (data.thisWeekCards.byStatus[st] || []).map((i) => [st, i.key, formatUrlForExport(i.url, i.issuelinks), i.isBim ? "Sim" : ""])
     ),
     styles: { fontSize: 8 },
     headStyles: { fillColor: [76, 110, 245] },
