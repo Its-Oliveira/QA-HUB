@@ -37,7 +37,7 @@ function buildDetailRows(data: WeeklyReportData) {
           Grupo: grupo,
           Status: st,
           "Issue Key": i.key,
-          URL: i.url,
+          URL: formatUrlForExport(i.url, i.issuelinks),
           "Produto BIM": i.isBim ? "Sim" : "Não",
           "Título do Card": i.summary,
         });
