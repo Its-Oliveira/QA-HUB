@@ -1,5 +1,6 @@
 import type { WeeklyReportData } from "@/types/reports.types";
 import { WEEKLY_STATUS_ORDER } from "@/types/reports.types";
+import { formatUrlForExport } from "./jiraLinkUtils";
 
 export const fmtDate = (d: Date) =>
   d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
