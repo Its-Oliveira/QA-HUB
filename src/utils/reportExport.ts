@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import type { WeeklyReportData } from "@/types/reports.types";
 import { WEEKLY_STATUS_ORDER } from "@/types/reports.types";
 import { buildReportText, fmtDate, fmtDateTime } from "./reportFormatters";
+import { formatUrlForExport } from "./jiraLinkUtils";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
