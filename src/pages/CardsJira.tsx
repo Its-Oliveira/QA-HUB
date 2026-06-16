@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatusDot from "@/components/StatusDot";
 import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, Filter } from "lucide-react";
+import { IssueLinkIcon } from "@/components/jira/IssueLinkIcon";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -123,7 +124,10 @@ const CardsJira = () => {
   const CardItem = ({ card }: { card: any }) => (
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-start justify-between mb-2">
-        <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
+        <span className="inline-flex items-center">
+          <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
+          <IssueLinkIcon issuelinks={(card as any).issue_links} />
+        </span>
         <div className="flex items-center gap-1">
           <button onClick={() => startEdit(card)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
           {confirmDeleteId === card.id ? (
@@ -195,7 +199,10 @@ const CardsJira = () => {
           {filtered.map((card) => (
             <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
-              <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono w-16 cursor-pointer hover:underline">{card.key}</a>
+              <span className="inline-flex items-center w-16">
+                <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
+                <IssueLinkIcon issuelinks={(card as any).issue_links} />
+              </span>
               <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground flex-1 cursor-pointer hover:underline">{card.title}</a>
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
               <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>

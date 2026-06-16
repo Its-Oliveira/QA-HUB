@@ -83,6 +83,7 @@ export function useWeeklyReport(): UseWeeklyReportReturn {
         components: i.components || [],
         created: i.created,
         isBim: isBimCard(i.summary || "", i.labels || [], i.components || []),
+        issuelinks: i.issuelinks || [],
       }));
 
       const oldByStatus: Record<string, JiraIssue[]> = {};
