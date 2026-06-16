@@ -1,5 +1,6 @@
 import type { WeeklyReportData } from "@/types/reports.types";
 import { WEEKLY_STATUS_ORDER } from "@/types/reports.types";
+import { formatUrlForExport } from "./jiraLinkUtils";
 
 export const fmtDate = (d: Date) =>
   d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -40,7 +41,7 @@ export function buildReportText(data: WeeklyReportData): string {
     const items = data.oldCards.byStatus[st];
     if (!items || items.length === 0) continue;
     lines.push(`[${st}]`);
-    for (const i of items) lines.push(`  ${i.url}${i.isBim ? "  (OrçaBim)" : ""}`);
+    for (const i of items) lines.push(`  ${formatUrlForExport(i.url, i.issuelinks)}${i.isBim ? "  (OrçaBim)" : ""}`);
     lines.push("");
   }
   lines.push(sep);
@@ -52,7 +53,7 @@ export function buildReportText(data: WeeklyReportData): string {
     const items = data.thisWeekCards.byStatus[st];
     if (!items || items.length === 0) continue;
     lines.push(`[${st}]`);
-    for (const i of items) lines.push(`  ${i.url}${i.isBim ? "  (OrçaBim)" : ""}`);
+    for (const i of items) lines.push(`  ${formatUrlForExport(i.url, i.issuelinks)}${i.isBim ? "  (OrçaBim)" : ""}`);
     lines.push("");
   }
   return lines.join("\n");

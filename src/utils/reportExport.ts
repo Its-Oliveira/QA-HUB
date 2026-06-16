@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import type { WeeklyReportData } from "@/types/reports.types";
 import { WEEKLY_STATUS_ORDER } from "@/types/reports.types";
 import { buildReportText, fmtDate, fmtDateTime } from "./reportFormatters";
+import { formatUrlForExport } from "./jiraLinkUtils";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -36,7 +37,7 @@ function buildDetailRows(data: WeeklyReportData) {
           Grupo: grupo,
           Status: st,
           "Issue Key": i.key,
-          URL: i.url,
+          URL: formatUrlForExport(i.url, i.issuelinks),
           "Produto BIM": i.isBim ? "Sim" : "Não",
           "Título do Card": i.summary,
         });
@@ -109,7 +110,7 @@ export function exportWeeklyAsPdf(data: WeeklyReportData) {
     startY: y + 2,
     head: [["Status", "Issue", "URL", "BIM"]],
     body: WEEKLY_STATUS_ORDER.flatMap((st) =>
-      (data.oldCards.byStatus[st] || []).map((i) => [st, i.key, i.url, i.isBim ? "Sim" : ""])
+      (data.oldCards.byStatus[st] || []).map((i) => [st, i.key, formatUrlForExport(i.url, i.issuelinks), i.isBim ? "Sim" : ""])
     ),
     styles: { fontSize: 8 },
     headStyles: { fillColor: [76, 110, 245] },
@@ -122,7 +123,7 @@ export function exportWeeklyAsPdf(data: WeeklyReportData) {
     startY: y + 2,
     head: [["Status", "Issue", "URL", "BIM"]],
     body: WEEKLY_STATUS_ORDER.flatMap((st) =>
-      (data.thisWeekCards.byStatus[st] || []).map((i) => [st, i.key, i.url, i.isBim ? "Sim" : ""])
+      (data.thisWeekCards.byStatus[st] || []).map((i) => [st, i.key, formatUrlForExport(i.url, i.issuelinks), i.isBim ? "Sim" : ""])
     ),
     styles: { fontSize: 8 },
     headStyles: { fillColor: [76, 110, 245] },
