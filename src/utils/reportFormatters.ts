@@ -53,7 +53,7 @@ export function buildReportText(data: WeeklyReportData): string {
     const items = data.thisWeekCards.byStatus[st];
     if (!items || items.length === 0) continue;
     lines.push(`[${st}]`);
-    for (const i of items) lines.push(`  ${i.url}${i.isBim ? "  (OrçaBim)" : ""}`);
+    for (const i of items) lines.push(`  ${formatUrlForExport(i.url, i.issuelinks)}${i.isBim ? "  (OrçaBim)" : ""}`);
     lines.push("");
   }
   return lines.join("\n");
