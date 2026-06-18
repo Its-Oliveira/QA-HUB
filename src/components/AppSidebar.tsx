@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, CreditCard, Bell, FlaskConical, Cog, LogOut, TestTube2, BarChart3, XCircle } from "lucide-react";
+import { LayoutDashboard, CreditCard, Bell, FlaskConical, Cog, LogOut, TestTube2, BarChart3 } from "lucide-react";
 
 const navItems = [
   { label: "Painel", path: "/", icon: LayoutDashboard },
@@ -9,7 +9,6 @@ const navItems = [
   { label: "Testes", path: "/testes", icon: FlaskConical },
   { label: "Automação", path: "/automacao", icon: TestTube2 },
   { label: "Relatórios", path: "/reports", icon: BarChart3 },
-  { label: "Cancelados pelo QA", path: "/reports/cancelados-qa", icon: XCircle },
 ];
 
 const AppSidebar = () => {
