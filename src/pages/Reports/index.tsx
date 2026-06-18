@@ -5,6 +5,7 @@ import ReportCard from "@/components/Reports/ReportCard";
 import WeeklyOpenCardsReport from "@/components/Reports/WeeklyOpenCardsReport";
 import CancelledCardsReport from "@/components/Reports/CancelledCardsReport";
 import ReportExportBar from "@/components/Reports/ReportExportBar";
+import CancelledReportExportBar from "@/components/Reports/CancelledReportExportBar";
 
 const ReportsPage = () => {
   const weekly = useWeeklyReport();
@@ -93,7 +94,10 @@ const ReportsPage = () => {
       )}
 
       {!cancelled.isLoading && !cancelled.error && cancelled.data && (
-        <CancelledCardsReport data={cancelled.data} />
+        <div className="space-y-3">
+          <CancelledReportExportBar data={cancelled.data} />
+          <CancelledCardsReport data={cancelled.data} />
+        </div>
       )}
     </div>
   );
