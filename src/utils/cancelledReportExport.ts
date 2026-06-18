@@ -3,7 +3,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { CancelledReportData } from "@/hooks/useCancelledReport";
 import { fmtDate, fmtDateTime } from "./reportFormatters";
-import { formatUrlForExport } from "./jiraLinkUtils";
+import { formatUrlForExport, hasIssueLinks } from "./jiraLinkUtils";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -124,19 +124,31 @@ export function exportCancelledAsPdf(data: CancelledReportData) {
   y = (doc as any).lastAutoTable.finalY + 8;
   doc.setFontSize(11);
   doc.text("Detalhamento dos Cards", 14, y);
+  const detailBody = data.issues.map((i) => [
+    i.key,
+    i.summary,
+    i.reporter || "Sem relator",
+    i.created ? fmtDate(new Date(i.created)) : "",
+    hasIssueLinks(i.issuelinks) ? "Sim" : "—",
+  ]);
   autoTable(doc, {
     startY: y + 2,
-    head: [["Card", "URL", "Resumo", "Relator", "Criado"]],
-    body: buildDetailRows(data).map((r) => [
-      r.Card,
-      r.URL,
-      r.Resumo,
-      r.Relator,
-      r.Criado,
-    ]),
+    head: [["Card", "Resumo", "Relator", "Criado", "Vinculado"]],
+    body: detailBody,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [76, 110, 245] },
-    columnStyles: { 2: { cellWidth: 70 } },
+    columnStyles: {
+      0: { textColor: [37, 99, 235], fontStyle: "bold" },
+      1: { cellWidth: 90 },
+    },
+    didDrawCell: (hook) => {
+      if (hook.section === "body" && hook.column.index === 0) {
+        const url = data.issues[hook.row.index]?.url;
+        if (url) {
+          doc.link(hook.cell.x, hook.cell.y, hook.cell.width, hook.cell.height, { url });
+        }
+      }
+    },
   });
 
   const pageCount = (doc as any).internal.getNumberOfPages();
