@@ -12,6 +12,7 @@ import Lembretes from "./pages/Lembretes";
 import Testes from "./pages/Testes";
 import Automacao from "./pages/Automacao";
 import ReportsPage from "./pages/Reports";
+import CancelledByQAReportPage from "./pages/CancelledByQAReport";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ const AppRoutes = () => {
       <Route path="/testes" element={<ProtectedRoute><Testes /></ProtectedRoute>} />
       <Route path="/automacao" element={<ProtectedRoute><Automacao /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+      <Route path="/reports/cancelados-qa" element={<ProtectedRoute><CancelledByQAReportPage /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
