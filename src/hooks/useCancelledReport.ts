@@ -2,21 +2,22 @@ import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { JiraIssueLink } from "@/types/jira";
 
+// Campo 'reporter' (Relator) utilizado no lugar de 'assignee' (Responsável) — requisito de negócio
 export interface CancelledIssue {
   key: string;
   url: string;
   summary: string;
   status: string;
   resolution: string;
-  assignee: string;
-  assigneeAvatar: string;
+  reporter: string;
+  reporterAvatar: string;
   created: string | null;
   resolutiondate: string | null;
   issuelinks?: JiraIssueLink[];
 }
 
-export interface AssigneeRank {
-  assignee: string;
+export interface ReporterRank {
+  reporter: string;
   count: number;
 }
 
@@ -27,7 +28,7 @@ export interface CancelledReportData {
   totalMonth: number;
   cancellationRate: number; // percentual
   issues: CancelledIssue[];
-  ranking: AssigneeRank[];
+  ranking: ReporterRank[];
 }
 
 function getStartOfMonth(): Date {
@@ -54,12 +55,14 @@ export function useCancelledReport() {
       const totalCancelled = res?.totalCancelled ?? issues.length;
       const totalMonth = res?.totalMonth ?? 0;
 
+      // Agrupamento por reporter (Relator) — requisito de negócio
       const counts = new Map<string, number>();
       for (const i of issues) {
-        counts.set(i.assignee, (counts.get(i.assignee) || 0) + 1);
+        const key = i.reporter || "Sem relator";
+        counts.set(key, (counts.get(key) || 0) + 1);
       }
-      const ranking: AssigneeRank[] = Array.from(counts.entries())
-        .map(([assignee, count]) => ({ assignee, count }))
+      const ranking: ReporterRank[] = Array.from(counts.entries())
+        .map(([reporter, count]) => ({ reporter, count }))
         .sort((a, b) => b.count - a.count);
 
       const cancellationRate =
