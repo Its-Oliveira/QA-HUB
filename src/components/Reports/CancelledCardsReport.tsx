@@ -48,20 +48,20 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
 
       <div>
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">
-          Ranking de Responsáveis
+          Ranking de Relatores
         </p>
         {data.ranking.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">Nenhum responsável.</p>
+          <p className="text-xs text-muted-foreground italic">Sem relator.</p>
         ) : (
           <ul className="space-y-1">
             {data.ranking.map((r, idx) => (
               <li
-                key={r.assignee}
+                key={r.reporter}
                 className="flex items-center justify-between text-xs px-3 py-1.5 rounded-md bg-secondary/30 border border-border"
               >
                 <span className="text-foreground">
                   <span className="text-muted-foreground mr-2">#{idx + 1}</span>
-                  {r.assignee}
+                  {r.reporter}
                 </span>
                 <span className="text-primary font-semibold">{r.count}</span>
               </li>
@@ -87,7 +87,7 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
                 <tr className="text-left text-muted-foreground border-b border-border">
                   <th className="py-1.5 pr-3">Card</th>
                   <th className="py-1.5 pr-3 font-sans">Resumo</th>
-                  <th className="py-1.5 pr-3 font-sans">Responsável</th>
+                  <th className="py-1.5 pr-3 font-sans">Relator</th>
                   <th className="py-1.5 pr-3 font-sans">Criado</th>
                 </tr>
               </thead>
@@ -109,7 +109,7 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
                       {i.summary}
                     </td>
                     <td className="py-1.5 pr-3 align-top font-sans text-foreground">
-                      {i.assignee}
+                      {i.reporter || "Sem relator"}
                     </td>
                     <td className="py-1.5 pr-3 align-top font-sans text-muted-foreground">
                       {i.created ? fmtDate(new Date(i.created)) : "—"}

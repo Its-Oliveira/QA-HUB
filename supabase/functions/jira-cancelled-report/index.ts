@@ -14,7 +14,8 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
   let nextPageToken: string | undefined;
   const jql = `project = ${JIRA_PROJECT} AND issuetype = ${JIRA_ISSUETYPE} AND resolution = ${JIRA_RESOLUTION} AND created >= startOfMonth() AND created <= now() ORDER BY created DESC`;
   console.log("JQL:", jql);
-  const fields = "summary,status,resolution,assignee,created,resolutiondate,issuetype,issuelinks";
+  // Campo 'reporter' (Relator) utilizado no lugar de 'assignee' (Responsável) — requisito de negócio
+  const fields = "summary,status,resolution,reporter,created,resolutiondate,issuetype,issuelinks";
 
   while (true) {
     let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(
@@ -73,8 +74,9 @@ Deno.serve(async (req) => {
       summary: i.fields?.summary || "",
       status: i.fields?.status?.name || "",
       resolution: i.fields?.resolution?.name || "",
-      assignee: i.fields?.assignee?.displayName || "Não atribuído",
-      assigneeAvatar: i.fields?.assignee?.avatarUrls?.["24x24"] || "",
+      // Campo 'reporter' (Relator) utilizado no lugar de 'assignee' (Responsável) — requisito de negócio
+      reporter: i.fields?.reporter?.displayName || "Sem relator",
+      reporterAvatar: i.fields?.reporter?.avatarUrls?.["24x24"] || "",
       created: i.fields?.created || null,
       resolutiondate: i.fields?.resolutiondate || null,
       issuelinks: Array.isArray(i.fields?.issuelinks) ? i.fields.issuelinks : [],
