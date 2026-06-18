@@ -43,15 +43,53 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
 
 async function fetchTotalMonth(auth: string): Promise<number> {
   const jql = `project = ${JIRA_PROJECT} AND issuetype = ${JIRA_ISSUETYPE} AND created >= startOfMonth() AND created <= now()`;
-  const url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(
-    jql
-  )}&maxResults=0&fields=summary`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
-  });
-  if (!res.ok) return 0;
-  const data = await res.json();
-  return data.total ?? 0;
+  // O endpoint /search/jql (paginado por token) NÃO retorna mais "total".
+  // Usar /search/approximate-count que é rápido e suficiente para o KPI.
+  try {
+    const res = await fetch(
+      `https://${JIRA_DOMAIN}/rest/api/3/search/approximate-count`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jql }),
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const count = data?.count ?? data?.total ?? 0;
+      console.log("totalMonth (approximate-count):", count);
+      if (typeof count === "number" && count >= 0) return count;
+    } else {
+      console.log("approximate-count falhou:", res.status, await res.text());
+    }
+  } catch (e) {
+    console.log("approximate-count erro:", (e as Error).message);
+  }
+
+  // Fallback: paginar /search/jql e contar.
+  let nextPageToken: string | undefined;
+  const seen = new Set<string>();
+  while (true) {
+    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(
+      jql
+    )}&maxResults=100&fields=summary`;
+    if (nextPageToken) url += `&nextPageToken=${encodeURIComponent(nextPageToken)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    });
+    if (!res.ok) break;
+    const data = await res.json();
+    const issues = data.issues || [];
+    for (const i of issues) seen.add(i.key);
+    if (!data.nextPageToken || issues.length === 0) break;
+    nextPageToken = data.nextPageToken;
+  }
+  console.log("totalMonth (fallback paginado):", seen.size);
+  return seen.size;
 }
 
 Deno.serve(async (req) => {
