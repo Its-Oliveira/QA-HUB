@@ -433,7 +433,20 @@ const MonthlyQAReport = ({
   );
 };
 
-function DetailTable({ rows }: { rows: Record<string, string | number>[] }) {
+function JiraLink({ url, k }: { url: string; k: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary hover:underline"
+    >
+      {k}
+    </a>
+  );
+}
+
+function DetailTable({ rows }: { rows: Record<string, React.ReactNode>[] }) {
   if (!rows.length)
     return <p className="text-xs text-muted-foreground italic">Sem registros.</p>;
   const headers = Object.keys(rows[0]);
@@ -452,7 +465,7 @@ function DetailTable({ rows }: { rows: Record<string, string | number>[] }) {
             <tr key={idx} className="border-b border-border/50">
               {headers.map((h) => (
                 <td key={h} className="py-1.5 pr-3 text-foreground align-top">
-                  {String(r[h])}
+                  {r[h]}
                 </td>
               ))}
             </tr>
