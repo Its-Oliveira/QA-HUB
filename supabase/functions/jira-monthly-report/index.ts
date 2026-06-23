@@ -157,10 +157,10 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolution = "Itens concluídos" AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
-  const issues = await searchPaginated(auth, jql, "summary,status,reporter,created");
+  const issues = await searchPaginated(auth, jql, "summary,status,resolution,reporter,created");
 
   const CONC = 8;
   const completed: {
