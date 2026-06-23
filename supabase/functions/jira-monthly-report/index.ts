@@ -301,6 +301,32 @@ Deno.serve(async (req) => {
 
     console.log("Período:", startDate, "→", endDate);
 
+    // ----- Debug mode (?debug=1) -----
+    if (url.searchParams.get("debug") === "1") {
+      const jqlDone = `project = ${JIRA_PROJECT} AND status = Done AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`;
+      const doneIssues = await searchPaginated(auth, jqlDone, "resolution,reporter");
+      const resCount: Record<string, number> = {};
+      const reporterCount: Record<string, number> = {};
+      for (const i of doneIssues) {
+        const rn = i.fields?.resolution?.name || "(sem)";
+        resCount[rn] = (resCount[rn] || 0) + 1;
+        const rp = i.fields?.reporter?.displayName || "(sem)";
+        reporterCount[rp] = (reporterCount[rp] || 0) + 1;
+      }
+      const resList = await jiraFetch(auth, `https://${JIRA_DOMAIN}/rest/api/3/resolution`);
+      const bqAll = await approximateCount(auth, `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} AND created >= "${startDate}" AND created <= "${endDate} 23:59"`);
+      const bqExcl = await approximateCount(auth, `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} ${EXCLUDE_JQL} AND created >= "${startDate}" AND created <= "${endDate} 23:59"`);
+      return new Response(JSON.stringify({
+        resolutionsAvailable: (resList as any[]).map((r) => r.name),
+        doneIssuesCount: doneIssues.length,
+        resolutionCounter: resCount,
+        reporterCounter: reporterCount,
+        bugQAAll: bqAll,
+        bugQAExcl: bqExcl,
+      }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     // Executar 3 indicadores em paralelo, isolando falhas
     type Block<T> = { ok: true; value: T } | { ok: false; error: string };
     async function safe<T>(fn: () => Promise<T>): Promise<Block<T>> {
