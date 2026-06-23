@@ -92,9 +92,6 @@ async function computeFlowCompleted(
   completed.sort((a, b) => (a.completedAt < b.completedAt ? 1 : -1));
   return { count: completed.length, issues: completed, scanned: issues.length };
 }
-  completed.sort((a, b) => (a.completedAt < b.completedAt ? 1 : -1));
-  return { count: completed.length, issues: completed, scanned: issues.length };
-}
 
 async function fetchBugQACreated(
   auth: string,
