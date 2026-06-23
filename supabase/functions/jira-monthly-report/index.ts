@@ -360,17 +360,28 @@ Deno.serve(async (req) => {
       };
     }
 
+    // Processar BUG QA — lista enxuta
+    let bugQA: any;
+    if (bugQAIssuesBlock.ok) {
+      const list = bugQAIssuesBlock.value.map((i: any) => ({
+        key: i.key,
+        url: `https://${JIRA_DOMAIN}/browse/${i.key}`,
+        summary: i.fields?.summary || "",
+        reporter: i.fields?.reporter?.displayName || "Sem relator",
+        created: i.fields?.created || null,
+      }));
+      bugQA = { totalCreated: list.length, issues: list };
+    } else {
+      bugQA = { error: bugQAIssuesBlock.error };
+    }
+
     return new Response(
       JSON.stringify({
         startDate,
         endDate,
         bugCliente,
-        bugQA: bugQACountBlock.ok
-          ? { totalCreated: bugQACountBlock.value }
-          : { error: bugQACountBlock.error },
-        flowCompleted: flowBlock.ok
-          ? flowBlock.value
-          : { error: flowBlock.error },
+        bugQA,
+        flowCompleted: flowBlock.ok ? flowBlock.value : { error: flowBlock.error },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
