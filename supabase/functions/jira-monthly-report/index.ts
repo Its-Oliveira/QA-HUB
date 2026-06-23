@@ -109,19 +109,33 @@ async function fetchChangelog(auth: string, key: string): Promise<any[]> {
 }
 
 // Retorna {completed: boolean, completedAt: string|null}
+// Considera também o status inicial (fromString da primeira transição) como
+// uma "transição" implícita no momento da criação — necessário porque o Jira
+// não registra o status inicial do card como changelog.
 function evaluateFlow(histories: any[]) {
-  // Coletar todas as transições de status: {toStatus, when}
-  const transitions: { to: string; when: number }[] = [];
+  // Coletar transições ordenadas por tempo e cada item de status com from/to
+  const raw: { from: string; to: string; when: number }[] = [];
   for (const h of histories) {
     const when = Date.parse(h.created || h.timestamp || "");
     if (!when) continue;
     for (const item of h.items || []) {
       if (item.field === "status" && typeof item.toString === "string") {
-        transitions.push({ to: item.toString, when });
+        raw.push({
+          from: typeof item.fromString === "string" ? item.fromString : "",
+          to: item.toString,
+          when,
+        });
       }
     }
   }
-  transitions.sort((a, b) => a.when - b.when);
+  raw.sort((a, b) => a.when - b.when);
+
+  const transitions: { to: string; when: number }[] = [];
+  // Injetar o status inicial (from da primeira transição) com tempo levemente anterior
+  if (raw.length > 0 && raw[0].from) {
+    transitions.push({ to: raw[0].from, when: raw[0].when - 1 });
+  }
+  for (const r of raw) transitions.push({ to: r.to, when: r.when });
 
   // Para cada step, encontrar a primeira ocorrência após o tempo do step anterior
   let cursor = -Infinity;
