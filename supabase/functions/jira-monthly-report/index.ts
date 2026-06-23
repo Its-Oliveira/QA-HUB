@@ -72,6 +72,9 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
+  // Observação: filtrar por `resolution = "Itens concluídos"` direto na JQL não
+  // funciona neste Jira (provável incompatibilidade de acento/quoting). Buscamos
+  // todos os cards em Done no período e filtramos a resolução no código.
   const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
@@ -80,12 +83,6 @@ async function computeFlowCompleted(
     jql,
     "summary,status,resolution,reporter,created,resolutiondate"
   );
-  const resolutionFreq: Record<string, number> = {};
-  for (const i of allIssues) {
-    const name = i.fields?.resolution?.name || "(sem resolução)";
-    resolutionFreq[name] = (resolutionFreq[name] || 0) + 1;
-  }
-  console.log("Resolutions encontradas:", JSON.stringify(resolutionFreq));
   const issues = allIssues.filter(
     (i: any) => (i.fields?.resolution?.name || "") === "Itens concluídos"
   );
