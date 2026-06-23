@@ -227,7 +227,7 @@ async function fetchBugClienteCreated(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_CLIENTE} AND created >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_CLIENTE} ${EXCLUDE_JQL} AND created >= "${jqlDate(
     startDate
   )}" AND created <= "${jqlDate(endDate)} 23:59" ORDER BY created DESC`;
   const fields = "summary,status,resolution,reporter,created,resolutiondate,issuetype,issuelinks";
