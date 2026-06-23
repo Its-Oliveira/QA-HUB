@@ -157,16 +157,20 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  // JQL: cards do projeto que entraram em status final (Done) dentro do período.
-  // statusCategory = Done é independente do nome localizado do status.
   const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
-  const issues = await searchPaginated(auth, jql, "summary,status");
+  const issues = await searchPaginated(auth, jql, "summary,status,reporter,created");
 
-  // Concorrência limitada
   const CONC = 8;
-  const completed: { key: string; completedAt: string }[] = [];
+  const completed: {
+    key: string;
+    url: string;
+    summary: string;
+    reporter: string;
+    created: string | null;
+    completedAt: string;
+  }[] = [];
   let idx = 0;
   async function worker() {
     while (idx < issues.length) {
@@ -180,7 +184,14 @@ async function computeFlowCompleted(
           const s = Date.parse(startDate + "T00:00:00Z");
           const e = Date.parse(endDate + "T23:59:59Z");
           if (t >= s && t <= e) {
-            completed.push({ key: issue.key, completedAt: ev.completedAt });
+            completed.push({
+              key: issue.key,
+              url: `https://${JIRA_DOMAIN}/browse/${issue.key}`,
+              summary: issue.fields?.summary || "",
+              reporter: issue.fields?.reporter?.displayName || "Sem relator",
+              created: issue.fields?.created || null,
+              completedAt: ev.completedAt,
+            });
           }
         }
       } catch (e) {
@@ -189,7 +200,19 @@ async function computeFlowCompleted(
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONC, issues.length) }, worker));
-  return { count: completed.length, sample: completed.slice(0, 50), scanned: issues.length };
+  completed.sort((a, b) => (a.completedAt < b.completedAt ? 1 : -1));
+  return { count: completed.length, issues: completed, scanned: issues.length };
+}
+
+async function fetchBugQACreated(
+  auth: string,
+  startDate: string,
+  endDate: string
+) {
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} AND created >= "${jqlDate(
+    startDate
+  )}" AND created <= "${jqlDate(endDate)} 23:59" ORDER BY created DESC`;
+  return searchPaginated(auth, jql, "summary,reporter,created");
 }
 
 // ---------- Indicador 2: BUG CLIENTE criados + cancelados ----------
@@ -282,16 +305,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    const [bugClienteIssuesBlock, bugQACountBlock, flowBlock] = await Promise.all([
+    const [bugClienteIssuesBlock, bugQAIssuesBlock, flowBlock] = await Promise.all([
       safe(() => fetchBugClienteCreated(auth, startDate, endDate)),
-      safe(() =>
-        approximateCount(
-          auth,
-          `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} AND created >= "${jqlDate(
-            startDate
-          )}" AND created <= "${jqlDate(endDate)} 23:59"`
-        )
-      ),
+      safe(() => fetchBugQACreated(auth, startDate, endDate)),
       safe(() => computeFlowCompleted(auth, startDate, endDate)),
     ]);
 
@@ -344,17 +360,28 @@ Deno.serve(async (req) => {
       };
     }
 
+    // Processar BUG QA — lista enxuta
+    let bugQA: any;
+    if (bugQAIssuesBlock.ok) {
+      const list = bugQAIssuesBlock.value.map((i: any) => ({
+        key: i.key,
+        url: `https://${JIRA_DOMAIN}/browse/${i.key}`,
+        summary: i.fields?.summary || "",
+        reporter: i.fields?.reporter?.displayName || "Sem relator",
+        created: i.fields?.created || null,
+      }));
+      bugQA = { totalCreated: list.length, issues: list };
+    } else {
+      bugQA = { error: bugQAIssuesBlock.error };
+    }
+
     return new Response(
       JSON.stringify({
         startDate,
         endDate,
         bugCliente,
-        bugQA: bugQACountBlock.ok
-          ? { totalCreated: bugQACountBlock.value }
-          : { error: bugQACountBlock.error },
-        flowCompleted: flowBlock.ok
-          ? flowBlock.value
-          : { error: flowBlock.error },
+        bugQA,
+        flowCompleted: flowBlock.ok ? flowBlock.value : { error: flowBlock.error },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
