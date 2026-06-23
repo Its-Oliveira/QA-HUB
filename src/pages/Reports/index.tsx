@@ -110,6 +110,44 @@ const ReportsPage = () => {
           <CancelledCardsReport data={cancelled.data} />
         </div>
       )}
+
+      {monthly.isLoading && (
+        <div className="bg-card border border-border rounded-xl p-6 space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-4 rounded bg-secondary animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {!monthly.isLoading && monthly.error && (
+        <div className="bg-card border border-destructive/40 rounded-xl p-6 text-center">
+          <AlertCircle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+          <p className="text-sm text-destructive mb-3">{monthly.error}</p>
+          <button
+            onClick={() => monthly.generate()}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium"
+          >
+            <RefreshCw className="w-3 h-3" /> Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {!monthly.isLoading && !monthly.error && monthly.data && (
+        <div className="space-y-3">
+          <MonthlyReportExportBar data={monthly.data} />
+          <MonthlyQAReport
+            data={monthly.data}
+            startDate={monthly.startDate}
+            endDate={monthly.endDate}
+            setStartDate={monthly.setStartDate}
+            setEndDate={monthly.setEndDate}
+            onRegenerate={monthly.generate}
+            onResetMonth={monthly.resetToCurrentMonth}
+            isCurrentMonth={monthly.isCurrentMonth}
+            isLoading={monthly.isLoading}
+          />
+        </div>
+      )}
     </div>
   );
 };
