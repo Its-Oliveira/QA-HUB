@@ -10,12 +10,6 @@ const JIRA_PROJECT = '"Bugs OrçaFascio"';
 const IT_BUG_CLIENTE = '"BUG cliente"';
 const IT_BUG_QA = '"BUG QA"';
 const RESOLUTION_CANCELLED = '"Cancelado QA"';
-const RESOLUTION_DONE = '"Itens concluídos"';
-
-// Relatores a excluir de todos os indicadores e detalhamentos.
-const EXCLUDED_REPORTERS = ["Caio de Oliveira", "Leonardo Tadeu Brito Pedro"];
-const EXCLUDED_REPORTERS_JQL = EXCLUDED_REPORTERS.map((n) => `"${n}"`).join(", ");
-const EXCLUDE_JQL = `AND reporter not in (${EXCLUDED_REPORTERS_JQL})`;
 
 // Etapas obrigatórias em ordem cronológica (nomes reais do board "Bugs OrçaFascio")
 // Outros status podem ocorrer intercalados sem invalidar a contagem.
@@ -163,7 +157,7 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND status = Done AND resolution = ${RESOLUTION_DONE} ${EXCLUDE_JQL} AND resolutiondate >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
   const issues = await searchPaginated(auth, jql, "summary,status,reporter,created");
@@ -215,7 +209,7 @@ async function fetchBugQACreated(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} ${EXCLUDE_JQL} AND created >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} AND created >= "${jqlDate(
     startDate
   )}" AND created <= "${jqlDate(endDate)} 23:59" ORDER BY created DESC`;
   return searchPaginated(auth, jql, "summary,reporter,created");
@@ -227,7 +221,7 @@ async function fetchBugClienteCreated(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_CLIENTE} ${EXCLUDE_JQL} AND created >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_CLIENTE} AND created >= "${jqlDate(
     startDate
   )}" AND created <= "${jqlDate(endDate)} 23:59" ORDER BY created DESC`;
   const fields = "summary,status,resolution,reporter,created,resolutiondate,issuetype,issuelinks";
@@ -300,8 +294,6 @@ Deno.serve(async (req) => {
     }
 
     console.log("Período:", startDate, "→", endDate);
-
-
 
     // Executar 3 indicadores em paralelo, isolando falhas
     type Block<T> = { ok: true; value: T } | { ok: false; error: string };
