@@ -1,15 +1,19 @@
-import { ListChecks, RefreshCw, AlertCircle, Inbox, XCircle } from "lucide-react";
+import { ListChecks, RefreshCw, AlertCircle, Inbox, XCircle, CalendarDays } from "lucide-react";
 import { useWeeklyReport } from "@/hooks/useWeeklyReport";
 import { useCancelledReport } from "@/hooks/useCancelledReport";
+import { useMonthlyReport } from "@/hooks/useMonthlyReport";
 import ReportCard from "@/components/Reports/ReportCard";
 import WeeklyOpenCardsReport from "@/components/Reports/WeeklyOpenCardsReport";
 import CancelledCardsReport from "@/components/Reports/CancelledCardsReport";
+import MonthlyQAReport from "@/components/Reports/MonthlyQAReport";
 import ReportExportBar from "@/components/Reports/ReportExportBar";
 import CancelledReportExportBar from "@/components/Reports/CancelledReportExportBar";
+import MonthlyReportExportBar from "@/components/Reports/MonthlyReportExportBar";
 
 const ReportsPage = () => {
   const weekly = useWeeklyReport();
   const cancelled = useCancelledReport();
+  const monthly = useMonthlyReport();
 
   return (
     <div className="space-y-6">
