@@ -39,6 +39,13 @@ const ReportsPage = () => {
           onGenerate={cancelled.generate}
           isLoading={cancelled.isLoading}
         />
+        <ReportCard
+          Icon={CalendarDays}
+          title="Relatório Mensal de QA"
+          description="Indicadores mensais de QA: cards com fluxo completo, BUG QA criados, BUG CLIENTE criados/cancelados e desempenho por relator."
+          onGenerate={() => monthly.generate()}
+          isLoading={monthly.isLoading}
+        />
       </div>
 
       {weekly.isLoading && (
