@@ -10,6 +10,12 @@ const JIRA_PROJECT = '"Bugs OrçaFascio"';
 const IT_BUG_CLIENTE = '"BUG cliente"';
 const IT_BUG_QA = '"BUG QA"';
 const RESOLUTION_CANCELLED = '"Cancelado QA"';
+const RESOLUTION_DONE = '"Itens concluídos"';
+
+// Relatores a excluir de todos os indicadores e detalhamentos.
+const EXCLUDED_REPORTERS = ["Caio de Oliveira", "Leonardo Tadeu Brito Pedro"];
+const EXCLUDED_REPORTERS_JQL = EXCLUDED_REPORTERS.map((n) => `"${n}"`).join(", ");
+const EXCLUDE_JQL = `AND reporter not in (${EXCLUDED_REPORTERS_JQL})`;
 
 // Etapas obrigatórias em ordem cronológica (nomes reais do board "Bugs OrçaFascio")
 // Outros status podem ocorrer intercalados sem invalidar a contagem.
