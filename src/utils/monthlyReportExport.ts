@@ -200,13 +200,21 @@ export async function exportMonthlyAsPdf(d: MonthlyReportData) {
   y = (doc as any).lastAutoTable.finalY + 6;
   doc.setFontSize(10);
   doc.text("BUG CLIENTE — Cards cancelados", 14, y);
+  const cancelledRows = bugClienteCancelledRows(d);
+  const cancelledUrls = (d.bugCliente.cancelledIssues || []).map((i) => i.url);
   autoTable(doc, {
     startY: y + 2,
     head: [["Chave", "Título", "Relator", "Criado", "Cancelado"]],
-    body: bugClienteCancelledRows(d).map((r) => [r.Chave, r.Título, r.Relator, r.Criado, r.Cancelado]),
+    body: cancelledRows.map((r) => [r.Chave, r.Título, r.Relator, r.Criado, r.Cancelado]),
     styles: { fontSize: 8, cellWidth: "wrap" },
-    columnStyles: { 1: { cellWidth: 70 } },
+    columnStyles: { 0: { textColor: [76, 110, 245] }, 1: { cellWidth: 70 } },
     headStyles: { fillColor: [250, 82, 82] },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        const url = cancelledUrls[data.row.index];
+        if (url) doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });
+      }
+    },
   });
 
   // ---------- BUG QA ----------
@@ -215,13 +223,21 @@ export async function exportMonthlyAsPdf(d: MonthlyReportData) {
   doc.text("BUG QA", 14, 16);
   doc.setFontSize(10);
   doc.text(`${d.bugQA.totalCreated ?? 0} cards criados no período.`, 14, 22);
+  const qaRows = bugQARows(d);
+  const qaUrls = (d.bugQA.issues || []).map((i) => i.url);
   autoTable(doc, {
     startY: 26,
     head: [["Chave", "Título", "Relator", "Criado"]],
-    body: bugQARows(d).map((r) => [r.Chave, r.Título, r.Relator, r.Criado]),
+    body: qaRows.map((r) => [r.Chave, r.Título, r.Relator, r.Criado]),
     styles: { fontSize: 8 },
-    columnStyles: { 1: { cellWidth: 90 } },
+    columnStyles: { 0: { textColor: [76, 110, 245] }, 1: { cellWidth: 90 } },
     headStyles: { fillColor: [255, 146, 43] },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        const url = qaUrls[data.row.index];
+        if (url) doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });
+      }
+    },
   });
 
   // ---------- Fluxo completo ----------
@@ -238,13 +254,21 @@ export async function exportMonthlyAsPdf(d: MonthlyReportData) {
     14,
     22
   );
+  const fRows = flowRows(d);
+  const fUrls = (d.flowCompleted.issues || []).map((i) => i.url);
   autoTable(doc, {
     startY: 26,
     head: [["Chave", "Título", "Relator", "Criado", "Concluído"]],
-    body: flowRows(d).map((r) => [r.Chave, r.Título, r.Relator, r.Criado, r.Concluído]),
+    body: fRows.map((r) => [r.Chave, r.Título, r.Relator, r.Criado, r.Concluído]),
     styles: { fontSize: 8 },
-    columnStyles: { 1: { cellWidth: 75 } },
+    columnStyles: { 0: { textColor: [76, 110, 245] }, 1: { cellWidth: 75 } },
     headStyles: { fillColor: [64, 192, 87] },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        const url = fUrls[data.row.index];
+        if (url) doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });
+      }
+    },
   });
 
   // Rodapé
