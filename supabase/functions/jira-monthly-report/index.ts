@@ -11,13 +11,12 @@ const IT_BUG_CLIENTE = '"BUG cliente"';
 const IT_BUG_QA = '"BUG QA"';
 const RESOLUTION_CANCELLED = '"Cancelado QA"';
 
-// 4 etapas obrigatórias em ordem cronológica
-// (outros status podem ocorrer intercalados sem invalidar a contagem)
+// Etapas obrigatórias em ordem cronológica (nomes reais do board "Bugs OrçaFascio")
+// Outros status podem ocorrer intercalados sem invalidar a contagem.
 const FLOW_STEPS = [
   "Backlog",
-  "Em desenvolvimento",
-  "Em produção",
-  "Concluído",
+  "Em Desenvolvimento",
+  "Done",
 ];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
