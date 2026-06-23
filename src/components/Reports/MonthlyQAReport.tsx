@@ -48,7 +48,7 @@ function Collapsible({
 }: {
   label: string;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
   id: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -447,7 +447,7 @@ function JiraLink({ keyId, url }: { keyId: string; url?: string }) {
   );
 }
 
-function DetailTable({ rows }: { rows: Record<string, React.ReactNode>[] }) {
+function DetailTable({ rows }: { rows: Record<string, ReactNode>[] }) {
   if (!rows.length)
     return <p className="text-xs text-muted-foreground italic">Sem registros.</p>;
   const headers = Object.keys(rows[0]);
@@ -466,7 +466,7 @@ function DetailTable({ rows }: { rows: Record<string, React.ReactNode>[] }) {
             <tr key={idx} className="border-b border-border/50">
               {headers.map((h) => (
                 <td key={h} className="py-1.5 pr-3 text-foreground align-top">
-                  {r[h] as React.ReactNode}
+                  {r[h] as ReactNode}
                 </td>
               ))}
             </tr>
