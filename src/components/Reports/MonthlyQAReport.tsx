@@ -385,7 +385,7 @@ const MonthlyQAReport = ({
             >
               <DetailTable
                 rows={(bq.issues || []).map((i) => ({
-                  Chave: i.key,
+                  Chave: <JiraLink url={i.url} k={i.key} />,
                   Título: i.summary,
                   Relator: i.reporter,
                   Criado: fmtDateSafe(i.created),
@@ -418,7 +418,7 @@ const MonthlyQAReport = ({
             >
               <DetailTable
                 rows={(flow.issues || []).map((i) => ({
-                  Chave: i.key,
+                  Chave: <JiraLink url={i.url} k={i.key} />,
                   Título: i.summary,
                   Relator: i.reporter,
                   Criado: fmtDateSafe(i.created),
