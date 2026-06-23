@@ -11,13 +11,6 @@ const IT_BUG_CLIENTE = '"BUG cliente"';
 const IT_BUG_QA = '"BUG QA"';
 const RESOLUTION_CANCELLED = '"Cancelado QA"';
 
-// Etapas obrigatórias em ordem cronológica (nomes reais do board "Bugs OrçaFascio")
-// Outros status podem ocorrer intercalados sem invalidar a contagem.
-const FLOW_STEPS = [
-  "Backlog",
-  "Em Desenvolvimento",
-  "Done",
-];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -73,133 +66,35 @@ async function searchPaginated(auth: string, jql: string, fields: string) {
   return out.filter((i) => (seen.has(i.key) ? false : (seen.add(i.key), true)));
 }
 
-async function approximateCount(auth: string, jql: string): Promise<number> {
-  try {
-    const data = await jiraPost(
-      auth,
-      `https://${JIRA_DOMAIN}/rest/api/3/search/approximate-count`,
-      { jql }
-    );
-    const c = data?.count ?? data?.total ?? 0;
-    if (typeof c === "number" && c >= 0) return c;
-  } catch (e) {
-    console.log("approximate-count falhou:", (e as Error).message);
-  }
-  // Fallback: paginar
-  const issues = await searchPaginated(auth, jql, "summary");
-  return issues.length;
-}
-
-// ---------- Indicador 1: fluxo completo ----------
-async function fetchChangelog(auth: string, key: string): Promise<any[]> {
-  const histories: any[] = [];
-  let startAt = 0;
-  while (true) {
-    const url = `https://${JIRA_DOMAIN}/rest/api/3/issue/${encodeURIComponent(
-      key
-    )}/changelog?startAt=${startAt}&maxResults=100`;
-    const data = await jiraFetch(auth, url);
-    const values = data?.values || [];
-    histories.push(...values);
-    if (data?.isLast || values.length === 0) break;
-    startAt += values.length;
-    if (startAt > 1000) break;
-  }
-  return histories;
-}
-
-// Retorna {completed: boolean, completedAt: string|null}
-// Considera também o status inicial (fromString da primeira transição) como
-// uma "transição" implícita no momento da criação — necessário porque o Jira
-// não registra o status inicial do card como changelog.
-function evaluateFlow(histories: any[]) {
-  // Coletar transições ordenadas por tempo e cada item de status com from/to
-  const raw: { from: string; to: string; when: number }[] = [];
-  for (const h of histories) {
-    const when = Date.parse(h.created || h.timestamp || "");
-    if (!when) continue;
-    for (const item of h.items || []) {
-      if (item.field === "status" && typeof item.toString === "string") {
-        raw.push({
-          from: typeof item.fromString === "string" ? item.fromString : "",
-          to: item.toString,
-          when,
-        });
-      }
-    }
-  }
-  raw.sort((a, b) => a.when - b.when);
-
-  const transitions: { to: string; when: number }[] = [];
-  // Injetar o status inicial (from da primeira transição) com tempo levemente anterior
-  if (raw.length > 0 && raw[0].from) {
-    transitions.push({ to: raw[0].from, when: raw[0].when - 1 });
-  }
-  for (const r of raw) transitions.push({ to: r.to, when: r.when });
-
-  // Para cada step, encontrar a primeira ocorrência após o tempo do step anterior
-  let cursor = -Infinity;
-  let lastTime = 0;
-  for (const step of FLOW_STEPS) {
-    const found = transitions.find((t) => t.to === step && t.when >= cursor);
-    if (!found) return { completed: false, completedAt: null as string | null };
-    cursor = found.when;
-    lastTime = found.when;
-  }
-  return {
-    completed: true,
-    completedAt: new Date(lastTime).toISOString(),
-  };
-}
-
+// ---------- Indicador 1: cards em Done com resolução "Itens concluídos" ----------
 async function computeFlowCompleted(
   auth: string,
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolution = "Itens concluídos" AND resolutiondate >= "${jqlDate(
+  // Observação: filtrar por `resolution = "Itens concluídos"` direto na JQL não
+  // funciona neste Jira (provável incompatibilidade de acento/quoting). Buscamos
+  // todos os cards em Done no período e filtramos a resolução no código.
+  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
-  const issues = await searchPaginated(auth, jql, "summary,status,resolution,reporter,created");
+  const allIssues = await searchPaginated(
+    auth,
+    jql,
+    "summary,status,resolution,reporter,created,resolutiondate"
+  );
+  const issues = allIssues.filter(
+    (i: any) => (i.fields?.resolution?.name || "") === "Itens concluídos"
+  );
 
-  const CONC = 8;
-  const completed: {
-    key: string;
-    url: string;
-    summary: string;
-    reporter: string;
-    created: string | null;
-    completedAt: string;
-  }[] = [];
-  let idx = 0;
-  async function worker() {
-    while (idx < issues.length) {
-      const my = idx++;
-      const issue = issues[my];
-      try {
-        const histories = await fetchChangelog(auth, issue.key);
-        const ev = evaluateFlow(histories);
-        if (ev.completed && ev.completedAt) {
-          const t = Date.parse(ev.completedAt);
-          const s = Date.parse(startDate + "T00:00:00Z");
-          const e = Date.parse(endDate + "T23:59:59Z");
-          if (t >= s && t <= e) {
-            completed.push({
-              key: issue.key,
-              url: `https://${JIRA_DOMAIN}/browse/${issue.key}`,
-              summary: issue.fields?.summary || "",
-              reporter: issue.fields?.reporter?.displayName || "Sem relator",
-              created: issue.fields?.created || null,
-              completedAt: ev.completedAt,
-            });
-          }
-        }
-      } catch (e) {
-        console.log("changelog erro", issue.key, (e as Error).message);
-      }
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(CONC, issues.length) }, worker));
+  const completed = issues.map((issue: any) => ({
+    key: issue.key,
+    url: `https://${JIRA_DOMAIN}/browse/${issue.key}`,
+    summary: issue.fields?.summary || "",
+    reporter: issue.fields?.reporter?.displayName || "Sem relator",
+    created: issue.fields?.created || null,
+    completedAt: issue.fields?.resolutiondate || "",
+  }));
   completed.sort((a, b) => (a.completedAt < b.completedAt ? 1 : -1));
   return { count: completed.length, issues: completed, scanned: issues.length };
 }
