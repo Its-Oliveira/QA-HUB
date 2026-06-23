@@ -305,16 +305,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    const [bugClienteIssuesBlock, bugQACountBlock, flowBlock] = await Promise.all([
+    const [bugClienteIssuesBlock, bugQAIssuesBlock, flowBlock] = await Promise.all([
       safe(() => fetchBugClienteCreated(auth, startDate, endDate)),
-      safe(() =>
-        approximateCount(
-          auth,
-          `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} AND created >= "${jqlDate(
-            startDate
-          )}" AND created <= "${jqlDate(endDate)} 23:59"`
-        )
-      ),
+      safe(() => fetchBugQACreated(auth, startDate, endDate)),
       safe(() => computeFlowCompleted(auth, startDate, endDate)),
     ]);
 
