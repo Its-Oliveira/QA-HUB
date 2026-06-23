@@ -72,13 +72,22 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolution = "Itens concluídos" AND resolutiondate >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
-  const issues = await searchPaginated(
+  const allIssues = await searchPaginated(
     auth,
     jql,
     "summary,status,resolution,reporter,created,resolutiondate"
+  );
+  const resolutionFreq: Record<string, number> = {};
+  for (const i of allIssues) {
+    const name = i.fields?.resolution?.name || "(sem resolução)";
+    resolutionFreq[name] = (resolutionFreq[name] || 0) + 1;
+  }
+  console.log("Resolutions encontradas:", JSON.stringify(resolutionFreq));
+  const issues = allIssues.filter(
+    (i: any) => (i.fields?.resolution?.name || "") === "Itens concluídos"
   );
 
   const completed = issues.map((issue: any) => ({
