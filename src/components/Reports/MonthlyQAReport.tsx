@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertCircle, RefreshCw, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import {
   PieChart,
@@ -48,7 +48,7 @@ function Collapsible({
 }: {
   label: string;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
   id: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -352,7 +352,7 @@ const MonthlyQAReport = ({
             >
               <DetailTable
                 rows={(bc.cancelledIssues || []).map((i) => ({
-                  Chave: i.key,
+                  Chave: <JiraLink keyId={i.key} url={i.url} />,
                   Título: i.summary,
                   Relator: i.reporter,
                   Criado: fmtDateSafe(i.created),
@@ -385,7 +385,7 @@ const MonthlyQAReport = ({
             >
               <DetailTable
                 rows={(bq.issues || []).map((i) => ({
-                  Chave: i.key,
+                  Chave: <JiraLink keyId={i.key} url={i.url} />,
                   Título: i.summary,
                   Relator: i.reporter,
                   Criado: fmtDateSafe(i.created),
@@ -418,7 +418,7 @@ const MonthlyQAReport = ({
             >
               <DetailTable
                 rows={(flow.issues || []).map((i) => ({
-                  Chave: i.key,
+                  Chave: <JiraLink keyId={i.key} url={i.url} />,
                   Título: i.summary,
                   Relator: i.reporter,
                   Criado: fmtDateSafe(i.created),
@@ -433,7 +433,21 @@ const MonthlyQAReport = ({
   );
 };
 
-function DetailTable({ rows }: { rows: Record<string, string | number>[] }) {
+function JiraLink({ keyId, url }: { keyId: string; url?: string }) {
+  if (!url) return <span className="font-mono">{keyId}</span>;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-mono text-primary hover:underline"
+    >
+      {keyId}
+    </a>
+  );
+}
+
+function DetailTable({ rows }: { rows: Record<string, ReactNode>[] }) {
   if (!rows.length)
     return <p className="text-xs text-muted-foreground italic">Sem registros.</p>;
   const headers = Object.keys(rows[0]);
@@ -452,7 +466,7 @@ function DetailTable({ rows }: { rows: Record<string, string | number>[] }) {
             <tr key={idx} className="border-b border-border/50">
               {headers.map((h) => (
                 <td key={h} className="py-1.5 pr-3 text-foreground align-top">
-                  {String(r[h])}
+                  {r[h] as ReactNode}
                 </td>
               ))}
             </tr>
