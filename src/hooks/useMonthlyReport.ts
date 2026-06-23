@@ -27,20 +27,38 @@ export interface BugClienteBlock {
   error?: string | null;
 }
 
+export interface BugQAIssueLite {
+  key: string;
+  url: string;
+  summary: string;
+  reporter: string;
+  created: string | null;
+}
+
+export interface FlowIssueLite {
+  key: string;
+  url: string;
+  summary: string;
+  reporter: string;
+  created: string | null;
+  completedAt: string;
+}
+
 export interface BugQABlock {
   totalCreated?: number;
+  issues?: BugQAIssueLite[];
   error?: string;
 }
 
 export interface FlowBlock {
   count?: number;
   scanned?: number;
-  sample?: { key: string; completedAt: string }[];
+  issues?: FlowIssueLite[];
   error?: string;
 }
 
 export interface MonthlyReportData {
-  startDate: string; // YYYY-MM-DD
+  startDate: string;
   endDate: string;
   bugCliente: BugClienteBlock;
   bugQA: BugQABlock;
