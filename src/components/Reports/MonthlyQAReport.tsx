@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertCircle, RefreshCw, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import {
   PieChart,
