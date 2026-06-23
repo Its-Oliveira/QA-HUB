@@ -1,63 +1,79 @@
-# Correção: Links quebrados no PDF "Detalhamento dos Cards" (Cancelados pelo QA)
+## Relatório Mensal de QA — Plano de Implementação
 
-## Causa raiz
+### Princípio de isolamento
+Tudo novo. Nada nos arquivos existentes (`useWeeklyReport`, `useCancelledReport`, `WeeklyOpenCardsReport`, `CancelledCardsReport`, `ReportExportBar`, `CancelledReportExportBar`, edge functions `jira-weekly-report` e `jira-cancelled-report`) será alterado. Única exceção: `src/pages/Reports/index.tsx` recebe o novo `<ReportCard>` e o bloco de renderização do novo relatório (aditivo, sem mexer nos blocos existentes).
 
-No PDF gerado por `exportCancelledAsPdf` (em `src/utils/cancelledReportExport.ts`), a coluna "URL" é renderizada apenas como **texto** pelo `jspdf-autotable`. Não existe hiperlink real associado a cada linha. O que torna esse texto "clicável" é o auto-detector de URLs do leitor de PDF (Chrome/Acrobat), que tem dois problemas neste relatório:
+### Pontos a confirmar com você antes de codar
+A spec exige parar se algo divergir do board real. Pelo código atual sei que:
+- **Project**: `"Bugs OrçaFascio"` (string exata usada hoje no edge `jira-cancelled-report`).
+- **Issue Type BUG CLIENTE**: hoje o código usa `"BUG cliente"` (com letra minúscula). Vou reusar esse mesmo literal.
+- **Issue Type BUG QA**: ainda não usado em lugar nenhum do código. Preciso do nome exato no Jira (ex.: `"BUG QA"`, `"Bug QA"`, `"BUG qa"`?).
+- **Status do fluxo (Indicador 1)**: os 7 nomes — `Backlog`, `Não iniciado`, `Em desenvolvimento`, `Revisão QA`, `Aprovado QA`, `Em produção`, `Concluído` — precisam bater **exatamente** com os do board. Vou usar esses literais; se algum estiver diferente no Jira, o indicador retornará 0 e eu vou reportar antes de tentar adaptar.
 
-1. A URL longa quebra em múltiplas linhas dentro da célula, então o auto-detector pega só um pedaço e gruda com texto da próxima linha/célula — gerando links que apontam para o card errado.
-2. O sufixo ` [Vinculado]` adicionado por `formatUrlForExport` entra no texto da URL, confundindo ainda mais a detecção.
+Se preferir, eu implemento com os literais acima (mesma capitalização) e, na primeira execução, se o Indicador 1 vier zerado/inconsistente, paro e te peço os nomes oficiais.
 
-Resultado: o usuário clica no link de `QA-100` e o leitor abre `QA-87`, por exemplo.
+### Arquivos novos
 
-## Solução
+```text
+supabase/functions/jira-monthly-report/index.ts   (novo edge)
+src/hooks/useMonthlyReport.ts                     (novo hook)
+src/components/Reports/MonthlyQAReport.tsx        (novo componente)
+src/components/Reports/MonthlyReportExportBar.tsx (novo, reusa utils existentes)
+src/utils/monthlyReportExport.ts                  (novo, PDF/XLSX/CSV/Copiar)
+```
 
-Parar de depender da auto-detecção. Anexar um hiperlink **real** por linha usando o hook `didDrawCell` do `autoTable` + `doc.link(x, y, w, h, { url })`, sempre apontando para `issues[rowIndex].url` (a URL canônica do próprio card daquela linha). Tornar a coluna **Card** o elemento clicável (em azul/sublinhado) e mover o indicador de vínculo para uma coluna dedicada **Vinculado** (Sim / —), removendo a coluna URL do PDF — que era a fonte do problema de wrapping.
+Edit único: `src/pages/Reports/index.tsx` — adicionar o terceiro `<ReportCard>` no grid e o bloco condicional de renderização (espelhando o padrão dos outros dois).
 
-Escopo: **apenas** o PDF do relatório "Cancelados pelo QA". CSV, XLSX e Copiar continuam com a URL completa via `formatUrlForExport` (não têm o bug, pois são texto puro consumido por planilhas/chat).
+### Edge function `jira-monthly-report`
+Recebe `{ startDate, endDate }` (ISO). Valida datas (`endDate >= startDate`, não-futuras, formato ISO; sanitização contra injeção JQL — só aceito `YYYY-MM-DD`). Default no client = mês vigente.
 
-## Arquivos alterados
+Faz **5 chamadas** ao Jira em paralelo:
 
-| Arquivo | Ação |
-|---|---|
-| `src/utils/cancelledReportExport.ts` | Editar somente `exportCancelledAsPdf`. Restante intacto. |
+1. **BUG CLIENTE criados no período** → JQL `project = "Bugs OrçaFascio" AND issuetype = "BUG cliente" AND created >= "X" AND created <= "Y"` — busca paginada com campos `reporter,created,resolution,status` → usado para total criado + agrupamento por relator.
+2. **BUG CLIENTE cancelados no período** → mesma JQL + `AND resolution = "Cancelado QA"` (mesmo literal do edge existente — paridade total de definição de "cancelado") → total cancelado + agrupamento por relator + dados detalhados.
+3. **BUG QA criados no período** → `approximate-count` com JQL análoga (preciso do issuetype exato).
+4. **Indicador 1 — Fluxo completo**:
+   - JQL pré-filtro: `status = "Concluído" AND resolved >= "X" AND resolved <= "Y"` (no projeto Orçafascio? a spec não restringe a projeto — vou assumir o mesmo projeto `"Bugs OrçaFascio"`; confirme se for outro escopo).
+   - Para cada card, busca paginada do changelog via `/rest/api/3/issue/{key}?expand=changelog` (a API atual não tem bulk changelog estável; uso `Promise.all` em chunks de 10 para limitar concorrência).
+   - Algoritmo: para cada um dos 7 status, encontrar a **primeira** transição cujo `toString` casa com o status. Se todos os 7 existem e as datas são monotonicamente crescentes (`t1 ≤ t2 ≤ ... ≤ t7`), conta. Status extras entre as transições são ignorados (não invalidam).
+   - Retorna número absoluto + lista mínima `{ key, completedAt }` para debugging.
+5. **`totalMonth` BUG CLIENTE** via `approximate-count` (igual ao edge existente) para consistência do KPI.
 
-Nenhum outro arquivo é tocado. Relatório semanal não é alterado.
+Cache: o hook mantém o último resultado no estado React e só refaz quando o usuário troca o período ou aperta "atualizar". Sem persistência.
 
-## Mudanças técnicas em `exportCancelledAsPdf`
+### Hook `useMonthlyReport`
+- Estado: `{ data, isLoading, error, startDate, endDate, setRange, resetToCurrentMonth, generate }`.
+- Default: `startDate = primeiro dia do mês corrente`, `endDate = agora`. Recalcula dinamicamente a cada `generate()` — nada cacheado entre sessões.
+- Validações no client antes de chamar o edge: `endDate >= startDate`, sem futuro, ambos preenchidos.
+- Carregamento progressivo: o edge retorna parciais? Para manter simples e robusto, vou retornar tudo numa resposta só, mas com cada bloco em try/catch independente no servidor → cada indicador pode vir como `{ value, error }`, e o componente renderiza skeleton/erro por bloco sem derrubar os outros.
 
-1. Trocar o cabeçalho da tabela de detalhamento de  
-   `["Card", "URL", "Resumo", "Relator", "Criado"]`  
-   para  
-   `["Card", "Resumo", "Relator", "Criado", "Vinculado"]`.
-2. Montar o body diretamente de `data.issues` (não via `buildDetailRows`, para manter o índice alinhado com `issues[i].url`):
-   ```ts
-   const detailBody = data.issues.map((i) => [
-     i.key,
-     i.summary,
-     i.reporter || "Sem relator",
-     i.created ? fmtDate(new Date(i.created)) : "",
-     hasIssueLinks(i.issuelinks) ? "Sim" : "—",
-   ]);
-   ```
-3. Estilizar a coluna 0 (Card) como link: `columnStyles: { 0: { textColor: [37, 99, 235], fontStyle: "bold" }, 1: { cellWidth: 90 } }`.
-4. Adicionar `didDrawCell` para anexar hiperlink real apenas em células de body da coluna 0:
-   ```ts
-   didDrawCell: (hook) => {
-     if (hook.section === "body" && hook.column.index === 0) {
-       const url = data.issues[hook.row.index]?.url;
-       if (url) {
-         doc.link(hook.cell.x, hook.cell.y, hook.cell.width, hook.cell.height, { url });
-       }
-     }
-   }
-   ```
-5. Importar `hasIssueLinks` de `@/utils/jiraLinkUtils`.
+### Componente `MonthlyQAReport`
+Mesmo padrão visual de `CancelledCardsReport.tsx` (header, separadores tracejados, grid de KPI cards, tabela monoespaçada). Layout:
 
-## Validação
+```text
+Header + período + "gerado em"
+[ Seletor de período: DatePicker início | DatePicker fim | Botão "Voltar ao mês atual" ]
+─────
+KPI grid (3 cards):
+  [ Fluxo completo: N ]  [ BUG QA criados: N ]  [ BUG CLIENTE — taxa: X% ]
+─────
+Bloco BUG CLIENTE:
+  Mini KPIs: Criados | Cancelados | Taxa
+  Tabela detalhada por relator: Relator | Criados | Cancelados | % | (ordenada por cancelados desc)
+─────
+(opcional) Lista resumida dos cards de fluxo completo
+```
 
-1. Abrir `/reports` → gerar "Cancelados pelo QA" → exportar PDF.
-2. Abrir o PDF no Chrome e no Acrobat:
-   - Clicar em pelo menos 3 cards diferentes (primeiro, meio, último da tabela).
-   - Confirmar que cada clique abre **exatamente** a URL daquele card no Jira.
-3. Conferir visualmente que a coluna **Vinculado** mostra "Sim" para cards com `issuelinks` e "—" caso contrário.
-4. Conferir que CSV/XLSX/Copiar continuam com a URL + `[Vinculado]` como antes (sem alteração).
+Estados vazios e de erro **por bloco** (cada um com `<AlertCircle/>` e "tentar novamente" só para aquele indicador).
+
+### Exportação
+Reuso a mesma stack (`jspdf` + `autotable`, `xlsx`, copy-to-clipboard) que já está em `cancelledReportExport.ts`. Arquivo novo `monthlyReportExport.ts` com as funções específicas (não alterar o existente). Exporta exatamente o período selecionado.
+
+### Validação que vou rodar antes de fechar
+- Build limpo (`tsgo`).
+- Smoke via `curl_edge_functions`: chamar `jira-monthly-report` com mês atual e conferir os 3 indicadores contra contagens manuais no Jira.
+- Verificar que os relatórios "Semana Atual" e "Cancelados" continuam idênticos (mesmos arquivos, sem diff).
+- Caso de borda Indicador 1: simular um card sem changelog completo no log do edge.
+
+### Pergunta única antes de seguir
+**Qual é o nome exato do issuetype "BUG QA" no Jira** (`"BUG QA"`, `"Bug QA"`, outro)? E confirma que o projeto é o mesmo `"Bugs OrçaFascio"` para os 3 indicadores? Com isso eu sigo direto para implementação.
