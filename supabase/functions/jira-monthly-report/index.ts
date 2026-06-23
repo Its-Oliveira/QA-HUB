@@ -11,13 +11,11 @@ const IT_BUG_CLIENTE = '"BUG cliente"';
 const IT_BUG_QA = '"BUG QA"';
 const RESOLUTION_CANCELLED = '"Cancelado QA"';
 
-// 7 etapas em ordem cronológica obrigatória
+// 4 etapas obrigatórias em ordem cronológica
+// (outros status podem ocorrer intercalados sem invalidar a contagem)
 const FLOW_STEPS = [
   "Backlog",
-  "Não iniciado",
   "Em desenvolvimento",
-  "Revisão QA",
-  "Aprovado QA",
   "Em produção",
   "Concluído",
 ];
