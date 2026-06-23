@@ -215,7 +215,7 @@ async function fetchBugQACreated(
   startDate: string,
   endDate: string
 ) {
-  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} AND created >= "${jqlDate(
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${IT_BUG_QA} ${EXCLUDE_JQL} AND created >= "${jqlDate(
     startDate
   )}" AND created <= "${jqlDate(endDate)} 23:59" ORDER BY created DESC`;
   return searchPaginated(auth, jql, "summary,reporter,created");
