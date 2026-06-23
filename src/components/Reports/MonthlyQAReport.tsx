@@ -352,7 +352,7 @@ const MonthlyQAReport = ({
             >
               <DetailTable
                 rows={(bc.cancelledIssues || []).map((i) => ({
-                  Chave: i.key,
+                  Chave: <JiraLink url={i.url} k={i.key} />,
                   Título: i.summary,
                   Relator: i.reporter,
                   Criado: fmtDateSafe(i.created),
