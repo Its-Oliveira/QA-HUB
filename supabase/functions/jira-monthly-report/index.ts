@@ -11,13 +11,12 @@ const IT_BUG_CLIENTE = '"BUG cliente"';
 const IT_BUG_QA = '"BUG QA"';
 const RESOLUTION_CANCELLED = '"Cancelado QA"';
 
-// 4 etapas obrigatórias em ordem cronológica
-// (outros status podem ocorrer intercalados sem invalidar a contagem)
+// Etapas obrigatórias em ordem cronológica (nomes reais do board "Bugs OrçaFascio")
+// Outros status podem ocorrer intercalados sem invalidar a contagem.
 const FLOW_STEPS = [
   "Backlog",
-  "Em desenvolvimento",
-  "Em produção",
-  "Concluído",
+  "Em Desenvolvimento",
+  "Done",
 ];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -110,19 +109,33 @@ async function fetchChangelog(auth: string, key: string): Promise<any[]> {
 }
 
 // Retorna {completed: boolean, completedAt: string|null}
+// Considera também o status inicial (fromString da primeira transição) como
+// uma "transição" implícita no momento da criação — necessário porque o Jira
+// não registra o status inicial do card como changelog.
 function evaluateFlow(histories: any[]) {
-  // Coletar todas as transições de status: {toStatus, when}
-  const transitions: { to: string; when: number }[] = [];
+  // Coletar transições ordenadas por tempo e cada item de status com from/to
+  const raw: { from: string; to: string; when: number }[] = [];
   for (const h of histories) {
     const when = Date.parse(h.created || h.timestamp || "");
     if (!when) continue;
     for (const item of h.items || []) {
       if (item.field === "status" && typeof item.toString === "string") {
-        transitions.push({ to: item.toString, when });
+        raw.push({
+          from: typeof item.fromString === "string" ? item.fromString : "",
+          to: item.toString,
+          when,
+        });
       }
     }
   }
-  transitions.sort((a, b) => a.when - b.when);
+  raw.sort((a, b) => a.when - b.when);
+
+  const transitions: { to: string; when: number }[] = [];
+  // Injetar o status inicial (from da primeira transição) com tempo levemente anterior
+  if (raw.length > 0 && raw[0].from) {
+    transitions.push({ to: raw[0].from, when: raw[0].when - 1 });
+  }
+  for (const r of raw) transitions.push({ to: r.to, when: r.when });
 
   // Para cada step, encontrar a primeira ocorrência após o tempo do step anterior
   let cursor = -Infinity;
@@ -144,34 +157,16 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  // Diagnóstico — várias variações para descobrir qual o nome real do status
-  const variants = [
-    `project = ${JIRA_PROJECT} AND status = "Concluído" AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
-    `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
-    `project = ${JIRA_PROJECT} AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
-    `project = ${JIRA_PROJECT} AND resolved >= "${startDate}" AND resolved <= "${endDate} 23:59"`,
-  ];
-  for (const v of variants) {
-    try {
-      const c = await approximateCount(auth, v);
-      console.log("DIAG:", c, "←", v);
-    } catch (e) {
-      console.log("DIAG ERR:", (e as Error).message, "←", v);
-    }
-  }
-
-  // JQL principal: statusCategory = Done garante independência do nome localizado
+  // JQL: cards do projeto que entraram em status final (Done) dentro do período.
+  // statusCategory = Done é independente do nome localizado do status.
   const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
   const issues = await searchPaginated(auth, jql, "summary,status");
-  console.log("Flow JQL:", jql, "→ issues:", issues.length);
 
   // Concorrência limitada
   const CONC = 8;
   const completed: { key: string; completedAt: string }[] = [];
-  const statusFreq = new Map<string, number>();
-  const samples: { key: string; trail: string[] }[] = [];
   let idx = 0;
   async function worker() {
     while (idx < issues.length) {
@@ -179,17 +174,6 @@ async function computeFlowCompleted(
       const issue = issues[my];
       try {
         const histories = await fetchChangelog(auth, issue.key);
-        // Coletar todas as transições para diagnóstico
-        const trail: string[] = [];
-        for (const h of histories) {
-          for (const item of h.items || []) {
-            if (item.field === "status" && typeof item.toString === "string") {
-              statusFreq.set(item.toString, (statusFreq.get(item.toString) || 0) + 1);
-              trail.push(item.toString);
-            }
-          }
-        }
-        if (samples.length < 3) samples.push({ key: issue.key, trail });
         const ev = evaluateFlow(histories);
         if (ev.completed && ev.completedAt) {
           const t = Date.parse(ev.completedAt);
@@ -205,8 +189,6 @@ async function computeFlowCompleted(
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONC, issues.length) }, worker));
-  console.log("STATUS FREQ:", JSON.stringify(Array.from(statusFreq.entries())));
-  console.log("SAMPLES:", JSON.stringify(samples));
   return { count: completed.length, sample: completed.slice(0, 50), scanned: issues.length };
 }
 
