@@ -144,15 +144,34 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  // JQL: cards no projeto cuja transição "para Concluído" ocorreu no período
-  const jql = `project = ${JIRA_PROJECT} AND status changed to "Concluído" DURING ("${jqlDate(
+  // Diagnóstico — várias variações para descobrir qual o nome real do status
+  const variants = [
+    `project = ${JIRA_PROJECT} AND status = "Concluído" AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
+    `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
+    `project = ${JIRA_PROJECT} AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
+    `project = ${JIRA_PROJECT} AND resolved >= "${startDate}" AND resolved <= "${endDate} 23:59"`,
+  ];
+  for (const v of variants) {
+    try {
+      const c = await approximateCount(auth, v);
+      console.log("DIAG:", c, "←", v);
+    } catch (e) {
+      console.log("DIAG ERR:", (e as Error).message, "←", v);
+    }
+  }
+
+  // JQL principal: statusCategory = Done garante independência do nome localizado
+  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
-  )}", "${jqlDate(endDate)} 23:59")`;
+  )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
   const issues = await searchPaginated(auth, jql, "summary,status");
+  console.log("Flow JQL:", jql, "→ issues:", issues.length);
 
   // Concorrência limitada
   const CONC = 8;
   const completed: { key: string; completedAt: string }[] = [];
+  const statusFreq = new Map<string, number>();
+  const samples: { key: string; trail: string[] }[] = [];
   let idx = 0;
   async function worker() {
     while (idx < issues.length) {
@@ -160,6 +179,17 @@ async function computeFlowCompleted(
       const issue = issues[my];
       try {
         const histories = await fetchChangelog(auth, issue.key);
+        // Coletar todas as transições para diagnóstico
+        const trail: string[] = [];
+        for (const h of histories) {
+          for (const item of h.items || []) {
+            if (item.field === "status" && typeof item.toString === "string") {
+              statusFreq.set(item.toString, (statusFreq.get(item.toString) || 0) + 1);
+              trail.push(item.toString);
+            }
+          }
+        }
+        if (samples.length < 3) samples.push({ key: issue.key, trail });
         const ev = evaluateFlow(histories);
         if (ev.completed && ev.completedAt) {
           const t = Date.parse(ev.completedAt);
@@ -175,6 +205,8 @@ async function computeFlowCompleted(
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONC, issues.length) }, worker));
+  console.log("STATUS FREQ:", JSON.stringify(Array.from(statusFreq.entries())));
+  console.log("SAMPLES:", JSON.stringify(samples));
   return { count: completed.length, sample: completed.slice(0, 50), scanned: issues.length };
 }
 
