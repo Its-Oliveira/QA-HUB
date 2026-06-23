@@ -170,6 +170,8 @@ async function computeFlowCompleted(
   // Concorrência limitada
   const CONC = 8;
   const completed: { key: string; completedAt: string }[] = [];
+  const statusFreq = new Map<string, number>();
+  const samples: { key: string; trail: string[] }[] = [];
   let idx = 0;
   async function worker() {
     while (idx < issues.length) {
@@ -177,6 +179,17 @@ async function computeFlowCompleted(
       const issue = issues[my];
       try {
         const histories = await fetchChangelog(auth, issue.key);
+        // Coletar todas as transições para diagnóstico
+        const trail: string[] = [];
+        for (const h of histories) {
+          for (const item of h.items || []) {
+            if (item.field === "status" && typeof item.toString === "string") {
+              statusFreq.set(item.toString, (statusFreq.get(item.toString) || 0) + 1);
+              trail.push(item.toString);
+            }
+          }
+        }
+        if (samples.length < 3) samples.push({ key: issue.key, trail });
         const ev = evaluateFlow(histories);
         if (ev.completed && ev.completedAt) {
           const t = Date.parse(ev.completedAt);
@@ -192,6 +205,8 @@ async function computeFlowCompleted(
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONC, issues.length) }, worker));
+  console.log("STATUS FREQ:", JSON.stringify(Array.from(statusFreq.entries())));
+  console.log("SAMPLES:", JSON.stringify(samples));
   return { count: completed.length, sample: completed.slice(0, 50), scanned: issues.length };
 }
 
