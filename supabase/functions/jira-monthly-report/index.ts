@@ -144,11 +144,13 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  // JQL: cards no projeto cuja transição "para Concluído" ocorreu no período
-  const jql = `project = ${JIRA_PROJECT} AND status changed to "Concluído" DURING ("${jqlDate(
+  // JQL: cards do projeto resolvidos como "Concluído" dentro do período
+  // (mesmo padrão do relatório de cancelados, comprovadamente compatível com /search/jql)
+  const jql = `project = ${JIRA_PROJECT} AND status = "Concluído" AND resolutiondate >= "${jqlDate(
     startDate
-  )}", "${jqlDate(endDate)} 23:59")`;
+  )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
   const issues = await searchPaginated(auth, jql, "summary,status");
+  console.log("Flow JQL:", jql, "→ issues:", issues.length);
 
   // Concorrência limitada
   const CONC = 8;
