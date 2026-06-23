@@ -144,9 +144,24 @@ async function computeFlowCompleted(
   startDate: string,
   endDate: string
 ) {
-  // JQL: cards do projeto resolvidos como "Concluído" dentro do período
-  // (mesmo padrão do relatório de cancelados, comprovadamente compatível com /search/jql)
-  const jql = `project = ${JIRA_PROJECT} AND status = "Concluído" AND resolutiondate >= "${jqlDate(
+  // Diagnóstico — várias variações para descobrir qual o nome real do status
+  const variants = [
+    `project = ${JIRA_PROJECT} AND status = "Concluído" AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
+    `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
+    `project = ${JIRA_PROJECT} AND resolutiondate >= "${startDate}" AND resolutiondate <= "${endDate} 23:59"`,
+    `project = ${JIRA_PROJECT} AND resolved >= "${startDate}" AND resolved <= "${endDate} 23:59"`,
+  ];
+  for (const v of variants) {
+    try {
+      const c = await approximateCount(auth, v);
+      console.log("DIAG:", c, "←", v);
+    } catch (e) {
+      console.log("DIAG ERR:", (e as Error).message, "←", v);
+    }
+  }
+
+  // JQL principal: statusCategory = Done garante independência do nome localizado
+  const jql = `project = ${JIRA_PROJECT} AND statusCategory = Done AND resolutiondate >= "${jqlDate(
     startDate
   )}" AND resolutiondate <= "${jqlDate(endDate)} 23:59"`;
   const issues = await searchPaginated(auth, jql, "summary,status");
