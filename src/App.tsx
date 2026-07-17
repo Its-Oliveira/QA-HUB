@@ -11,6 +11,7 @@ import CardsJira from "./pages/CardsJira";
 import Lembretes from "./pages/Lembretes";
 import Testes from "./pages/Testes";
 import Automacao from "./pages/Automacao";
+import AutomacaoTestes from "./pages/AutomacaoTestes";
 import ReportsPage from "./pages/Reports";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
