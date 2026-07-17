@@ -179,6 +179,66 @@ export type Database = {
         }
         Relationships: []
       }
+      test_runs: {
+        Row: {
+          branch: string
+          correlation_id: string
+          created_at: string
+          duration_ms: number | null
+          environment: string
+          failed: number | null
+          finished_at: string | null
+          github_run_id: string | null
+          id: string
+          passed: number | null
+          report_url: string | null
+          skipped: number | null
+          spec: string | null
+          started_at: string | null
+          status: string
+          total: number | null
+          triggered_by: string
+        }
+        Insert: {
+          branch: string
+          correlation_id: string
+          created_at?: string
+          duration_ms?: number | null
+          environment: string
+          failed?: number | null
+          finished_at?: string | null
+          github_run_id?: string | null
+          id?: string
+          passed?: number | null
+          report_url?: string | null
+          skipped?: number | null
+          spec?: string | null
+          started_at?: string | null
+          status?: string
+          total?: number | null
+          triggered_by: string
+        }
+        Update: {
+          branch?: string
+          correlation_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          environment?: string
+          failed?: number | null
+          finished_at?: string | null
+          github_run_id?: string | null
+          id?: string
+          passed?: number | null
+          report_url?: string | null
+          skipped?: number | null
+          spec?: string | null
+          started_at?: string | null
+          status?: string
+          total?: number | null
+          triggered_by?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
