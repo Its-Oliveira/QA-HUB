@@ -6,7 +6,6 @@ import {
   folderStatus,
   formatDuration,
   nodeStatus,
-  specUrl,
   type FolderNode,
   type SpecNode,
   type TestResult,
@@ -20,7 +19,6 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDashed,
-  ExternalLink,
   FileCode2,
   Folder as FolderIcon,
   FolderOpen,
@@ -68,7 +66,7 @@ function TestRow({
   link: LinkInfo;
 }) {
   const [open, setOpen] = useState(false);
-  const url = specUrl(link.repository, link.commitSha, test.spec, test.source_line);
+  
   const failed = test.status === "failed";
   return (
     <li className="py-1">
@@ -205,7 +203,7 @@ function Spec({
 }) {
   const status = nodeStatus(node);
   const [open, setOpen] = useState(status === "failed" || status === "running");
-  const url = specUrl(link.repository, link.commitSha, node.spec);
+  
   return (
     <div className="rounded-lg border bg-card p-3">
       <div className="flex items-center gap-2">
