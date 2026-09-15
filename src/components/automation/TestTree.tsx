@@ -58,19 +58,23 @@ interface LinkInfo {
 /** Tests are rendered in chunks so a suite with hundreds of `it`s stays fast. */
 const CHUNK = 40;
 
-function TestRow({
-  test,
-  link,
-}: {
-  test: TestResult;
-  link: LinkInfo;
-}) {
+/** Consistent, comfortable hit area for every expand/collapse control. */
+const ROW =
+  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50";
+
+const Chevron = ({ open }: { open: boolean }) =>
+  open ? (
+    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+  ) : (
+    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+  );
+
+function TestRow({ test }: { test: TestResult }) {
   const [open, setOpen] = useState(false);
-  
   const failed = test.status === "failed";
   return (
-    <li className="py-1">
-      <div className="flex items-start gap-2 text-sm">
+    <li className="border-b border-border/40 last:border-0">
+      <div className="flex items-start gap-2 px-2 py-2 text-sm">
         <StatusIcon status={test.status} />
         <span className="flex-1 break-words">
           {test.title}
@@ -80,12 +84,12 @@ function TestRow({
             </span>
           )}
         </span>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
+        <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
           {formatDuration(test.duration_ms)}
         </span>
       </div>
       {failed && (test.error_message || test.error_stack) && (
-        <div className="ml-6 mt-1">
+        <div className="ml-6 pb-2">
           <button
             className="text-xs text-primary underline"
             onClick={() => setOpen((o) => !o)}
@@ -93,7 +97,7 @@ function TestRow({
             {open ? "Ocultar erro" : "Ver erro"}
           </button>
           {open && (
-            <pre className="mt-1 max-h-60 overflow-auto rounded bg-secondary p-2 text-xs whitespace-pre-wrap break-all">
+            <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded bg-secondary p-2 text-xs">
               {test.error_message}
               {test.error_stack ? `\n${test.error_stack}` : ""}
             </pre>
@@ -126,20 +130,20 @@ function TestRow({
   );
 }
 
-function TestList({ tests, link }: { tests: TestResult[]; link: LinkInfo }) {
+function TestList({ tests }: { tests: TestResult[] }) {
   const [limit, setLimit] = useState(CHUNK);
   return (
     <>
-      <ul className="ml-2 border-l pl-3">
+      <ul className="border-l border-border/60 pl-3">
         {tests.slice(0, limit).map((test) => (
-          <TestRow key={test.id} test={test} link={link} />
+          <TestRow key={test.id} test={test} />
         ))}
       </ul>
       {tests.length > limit && (
         <Button
           variant="ghost"
           size="sm"
-          className="ml-2"
+          className="ml-3 mt-1"
           onClick={() => setLimit((l) => l + CHUNK)}
         >
           Mostrar mais ({tests.length - limit})
@@ -161,112 +165,101 @@ function Branch({
   const status = nodeStatus(node);
   const [open, setOpen] = useState(defaultOpen || status === "failed");
   return (
-    <li className="py-1">
-      <button
-        className="flex w-full items-center gap-2 text-left text-sm font-medium"
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
-        )}
+    <li>
+      <button className={ROW} onClick={() => setOpen((o) => !o)}>
+        <Chevron open={open} />
         <StatusIcon status={status} />
-        <span className="flex-1 break-words">{node.title}</span>
-        <span className="text-xs text-muted-foreground">{countTests(node)}</span>
+        <span className="flex-1 break-words text-sm font-medium">{node.title}</span>
+        <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+          {countTests(node)}
+        </span>
       </button>
       {open && (
-        <div className="ml-4">
-          <ul className="border-l pl-3">
+        <div className="ml-3 border-l border-border/60 pl-3">
+          <ul>
             {node.children.map((child) => (
-              <Branch
-                key={child.key}
-                node={child}
-                link={link}
-                defaultOpen={false}
-              />
+              <Branch key={child.key} node={child} link={link} defaultOpen={false} />
             ))}
           </ul>
-          {!!node.tests.length && <TestList tests={node.tests} link={link} />}
+          {!!node.tests.length && <TestList tests={node.tests} />}
         </div>
       )}
     </li>
   );
 }
 
-function Spec({
-  node,
-  link,
-}: {
-  node: SpecNode;
-  link: LinkInfo;
-}) {
+function Spec({ node, link }: { node: SpecNode; link: LinkInfo }) {
   const status = nodeStatus(node);
   const [open, setOpen] = useState(status === "failed" || status === "running");
-  
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-2">
-        <button
-          className="flex flex-1 items-center gap-2 text-left"
-          onClick={() => setOpen((o) => !o)}
-        >
-          {open ? (
-            <ChevronDown className="h-4 w-4 shrink-0" />
-          ) : (
-            <ChevronRight className="h-4 w-4 shrink-0" />
-          )}
-          <StatusIcon status={status} />
-          <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="flex-1 break-all font-mono text-sm">{node.fileName}</span>
-          <span className="text-xs text-muted-foreground">
-            {countTests(node)} testes
-          </span>
-        </button>
-      </div>
+    <div className="rounded-lg border bg-card">
+      <button className={`${ROW} px-3 py-3`} onClick={() => setOpen((o) => !o)}>
+        <Chevron open={open} />
+        <StatusIcon status={status} />
+        <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="flex-1 break-all font-mono text-sm">{node.fileName}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {countTests(node)} testes
+        </span>
+      </button>
       {open && (
-        <div className="mt-2">
+        <div className="border-t px-3 py-2">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
             ))}
           </ul>
-          {!!node.tests.length && <TestList tests={node.tests} link={link} />}
+          {!!node.tests.length && <TestList tests={node.tests} />}
         </div>
       )}
     </div>
   );
 }
 
-function Folder({ folder, link }: { folder: FolderNode; link: LinkInfo }) {
+function Folder({
+  folder,
+  link,
+  depth = 0,
+}: {
+  folder: FolderNode;
+  link: LinkInfo;
+  depth?: number;
+}) {
   const status = folderStatus(folder);
   const [open, setOpen] = useState(status === "failed" || status === "running");
   return (
-    <div className="rounded-lg border border-dashed bg-card/40 p-2">
-      <button
-        className="flex w-full items-center gap-2 text-left"
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
-        )}
+    <div
+      className={
+        depth === 0
+          ? "rounded-xl border bg-secondary/40 p-2"
+          : "rounded-lg border border-dashed bg-background/40 p-2"
+      }
+    >
+      <button className={`${ROW} px-3`} onClick={() => setOpen((o) => !o)}>
+        <Chevron open={open} />
         <StatusIcon status={status} />
         {open ? (
-          <FolderOpen className="h-4 w-4 shrink-0 text-warning" />
+          <FolderOpen className="h-5 w-5 shrink-0 text-warning" />
         ) : (
-          <FolderIcon className="h-4 w-4 shrink-0 text-warning" />
+          <FolderIcon className="h-5 w-5 shrink-0 text-warning" />
         )}
-        <span className="flex-1 break-all text-sm font-medium">{folder.name}</span>
-        <span className="text-xs text-muted-foreground">
+        <span
+          className={`flex-1 break-all ${
+            depth === 0
+              ? "text-base font-semibold uppercase tracking-wide"
+              : "text-sm font-semibold"
+          }`}
+        >
+          {folder.name}
+        </span>
+        <span className="shrink-0 text-xs text-muted-foreground">
           {countFolderTests(folder)} testes
         </span>
       </button>
       {open && (
-        <div className="mt-2 space-y-2 pl-4">
+        <div className="mt-2 space-y-3 border-t pt-3 pl-4">
           {folder.folders.map((child) => (
-            <Folder key={child.key} folder={child} link={link} />
+            <Folder key={child.key} folder={child} link={link} depth={depth + 1} />
           ))}
           {folder.specs.map((spec) => (
             <Spec key={spec.spec} node={spec} link={link} />
@@ -293,7 +286,7 @@ export default function TestTree({
   const root = buildFolderTree(results);
   const link = { repository, commitSha };
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {root.folders.map((folder) => (
         <Folder key={folder.key} folder={folder} link={link} />
       ))}
