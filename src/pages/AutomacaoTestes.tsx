@@ -354,7 +354,7 @@ export default function AutomacaoTestes() {
       <LatestRunCard
         run={latest.data}
         repository={catalog.data?.repository}
-        onOpen={setSelected}
+        onOpen={openRun}
       />
       <section className="space-y-3">
         <h2 className="font-semibold">Execuções em andamento</h2>
@@ -367,7 +367,7 @@ export default function AutomacaoTestes() {
           <button
             key={r.id}
             className="w-full rounded-lg border bg-card p-4 text-left flex flex-wrap gap-4"
-            onClick={() => setSelected(r.id)}
+            onClick={() => openRun(r.id)}
           >
             <Badge status={r.status} />
             <span>
@@ -506,7 +506,7 @@ export default function AutomacaoTestes() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelected(r.id)}
+                      onClick={() => openRun(r.id)}
                     >
                       Abrir
                     </Button>
