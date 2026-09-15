@@ -19,6 +19,9 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Play, Loader2 } from "lucide-react";
+import TestTree from "@/components/automation/TestTree";
+import LatestRunCard from "@/components/automation/LatestRunCard";
+import { useTestResults, useTestResultsRealtime } from "@/lib/testResults";
 const labels: Record<string, string> = {
   queued: "Na fila",
   in_progress: "Em execução",
@@ -162,6 +165,19 @@ export default function AutomacaoTestes() {
       return data as unknown as ActionRun[];
     },
   });
+  const latest = useQuery({
+    queryKey: ["test_runs", "latest"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("test_runs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as ActionRun) || null;
+    },
+  });
   const detail = useQuery({
     queryKey: ["test_runs", "detail", selected],
     enabled: !!selected,
@@ -208,6 +224,8 @@ export default function AutomacaoTestes() {
       supabase.removeChannel(channel);
     };
   }, [client]);
+  useTestResultsRealtime();
+  const detailResults = useTestResults(selected);
   const duplicate = active.data?.some(
     (r) => r.workflow_id === workflow && r.branch === branch,
   );
@@ -365,6 +383,11 @@ export default function AutomacaoTestes() {
           Rodar
         </Button>
       </section>
+      <LatestRunCard
+        run={latest.data}
+        repository={catalog.data?.repository}
+        onOpen={setSelected}
+      />
       <section className="space-y-3">
         <h2 className="font-semibold">Execuções em andamento</h2>
         {!active.data?.length && (
@@ -599,15 +622,25 @@ export default function AutomacaoTestes() {
                   ))}
                 </div>
               ))}
-              <h3 className="font-semibold">Testes que falharam</h3>
-              {!run.failures?.length && (
-                <p className="text-sm text-muted-foreground">
-                  {["failed", "failure"].includes(run.status)
-                    ? "Detalhes de testes não enviados pelo workflow. Consulte o relatório ou baixe os artefatos."
-                    : "Nenhuma falha de teste reportada."}
-                </p>
+              <h3 className="font-semibold">Testes (spec › describe › it)</h3>
+              {detailResults.isLoading && (
+                <p className="text-sm text-muted-foreground">Carregando testes…</p>
               )}
-              {run.failures?.map((f, i) => (
+              <TestTree
+                results={detailResults.data || []}
+                repository={catalog.data?.repository}
+                commitSha={run.commit_sha}
+                emptyMessage={
+                  activeStatus(run.status)
+                    ? "Aguardando os primeiros testes…"
+                    : "Esta execução não enviou detalhamento por teste. Consulte o relatório ou baixe os artefatos."
+                }
+              />
+              {!detailResults.data?.length && !!run.failures?.length && (
+                <h3 className="font-semibold">Testes que falharam</h3>
+              )}
+              {!detailResults.data?.length &&
+                run.failures?.map((f, i) => (
                 <div key={i} className="border rounded p-3 space-y-2">
                   <p className="font-medium">{f.name}</p>
                   <pre className="text-xs whitespace-pre-wrap break-all">

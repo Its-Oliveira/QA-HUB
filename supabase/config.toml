@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.test-run-webhook]
 verify_jwt = false
+
+[functions.cypress-events]
+verify_jwt = false

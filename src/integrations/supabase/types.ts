@@ -227,6 +227,71 @@ export type Database = {
         }
         Relationships: []
       }
+      test_results: {
+        Row: {
+          attempts: number
+          created_at: string
+          describe_path: string[]
+          duration_ms: number | null
+          error_message: string | null
+          error_stack: string | null
+          full_title: string
+          id: string
+          run_id: string
+          screenshot: string | null
+          source_line: number | null
+          spec: string
+          status: string
+          title: string
+          updated_at: string
+          video: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          describe_path?: string[]
+          duration_ms?: number | null
+          error_message?: string | null
+          error_stack?: string | null
+          full_title: string
+          id?: string
+          run_id: string
+          screenshot?: string | null
+          source_line?: number | null
+          spec: string
+          status?: string
+          title: string
+          updated_at?: string
+          video?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          describe_path?: string[]
+          duration_ms?: number | null
+          error_message?: string | null
+          error_stack?: string | null
+          full_title?: string
+          id?: string
+          run_id?: string
+          screenshot?: string | null
+          source_line?: number | null
+          spec?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          video?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_runs: {
         Row: {
           actor_id: string | null

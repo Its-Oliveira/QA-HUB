@@ -206,4 +206,12 @@ export async function syncRun(run: {
         { onConflict: "correlation_id" },
       );
   if (result.error) throw new ApiError(500, "Falha ao sincronizar execução.");
+  // Reconciliation: once the GitHub run is over, no test may stay "running".
+  if (run.status === "completed" && target) {
+    await store
+      .from("test_results")
+      .update({ status: "skipped" })
+      .eq("run_id", target.id)
+      .eq("status", "running");
+  }
 }
