@@ -224,7 +224,8 @@ function Spec({
             <ChevronRight className="h-4 w-4 shrink-0" />
           )}
           <StatusIcon status={status} />
-          <span className="flex-1 break-all font-mono text-sm">{node.spec}</span>
+          <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="flex-1 break-all font-mono text-sm">{node.fileName}</span>
           <span className="text-xs text-muted-foreground">
             {countTests(node)} testes
           </span>
@@ -255,6 +256,45 @@ function Spec({
   );
 }
 
+function Folder({ folder, link }: { folder: FolderNode; link: LinkInfo }) {
+  const status = folderStatus(folder);
+  const [open, setOpen] = useState(status === "failed" || status === "running");
+  return (
+    <div className="rounded-lg border border-dashed bg-card/40 p-2">
+      <button
+        className="flex w-full items-center gap-2 text-left"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? (
+          <ChevronDown className="h-4 w-4 shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0" />
+        )}
+        <StatusIcon status={status} />
+        {open ? (
+          <FolderOpen className="h-4 w-4 shrink-0 text-warning" />
+        ) : (
+          <FolderIcon className="h-4 w-4 shrink-0 text-warning" />
+        )}
+        <span className="flex-1 break-all text-sm font-medium">{folder.name}</span>
+        <span className="text-xs text-muted-foreground">
+          {countFolderTests(folder)} testes
+        </span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2 pl-4">
+          {folder.folders.map((child) => (
+            <Folder key={child.key} folder={child} link={link} />
+          ))}
+          {folder.specs.map((spec) => (
+            <Spec key={spec.spec} node={spec} link={link} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TestTree({
   results,
   repository,
@@ -268,11 +308,14 @@ export default function TestTree({
 }) {
   if (!results.length)
     return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
-  const tree = buildTree(results);
+  const root = buildFolderTree(results);
   const link = { repository, commitSha };
   return (
     <div className="space-y-2">
-      {tree.map((spec) => (
+      {root.folders.map((folder) => (
+        <Folder key={folder.key} folder={folder} link={link} />
+      ))}
+      {root.specs.map((spec) => (
         <Spec key={spec.spec} node={spec} link={link} />
       ))}
     </div>
