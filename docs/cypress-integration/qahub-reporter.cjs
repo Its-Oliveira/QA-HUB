@@ -14,7 +14,7 @@
  *   QAHUB_CORRELATION_ID correlation id passed as a workflow input by QA Hub
  *                        (falls back to GITHUB_RUN_ID)
  *
- * Failures to POST never break the test run.
+ * Live delivery failures are logged without changing the Cypress result.
  */
 
 const Mocha = require("mocha");
@@ -48,9 +48,14 @@ function describePath(test) {
   return titles;
 }
 
-function send(payload) {
-  if (!URL_ || !SECRET) return Promise.resolve();
-  return fetch(URL_, {
+async function send(payload) {
+  if (!URL_ || !SECRET) {
+    console.error("[QA Hub] QAHUB_EVENTS_URL ou QAHUB_EVENTS_SECRET não configurado.");
+    return;
+  }
+
+  try {
+    const response = await fetch(URL_, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-QAHub-Secret": SECRET },
     body: JSON.stringify({
@@ -59,7 +64,15 @@ function send(payload) {
       github_run_id: CORRELATION_ID ? undefined : GITHUB_RUN_ID,
       ...payload,
     }),
-  }).catch(() => {});
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      console.error(`[QA Hub] Envio rejeitado (${response.status}): ${details}`);
+    }
+  } catch (error) {
+    console.error(`[QA Hub] Falha ao enviar evento: ${error.message || error}`);
+  }
 }
 
 function base(test) {
@@ -75,8 +88,8 @@ function base(test) {
 
 class QAHubReporter {
   constructor(runner) {
-    const pending = [];
-    const track = (promise) => pending.push(promise);
+    this.pending = [];
+    const track = (promise) => this.pending.push(promise);
 
     runner.on(EVENT_TEST_BEGIN, (test) => {
       track(send({ ...base(test), status: "running" }));
@@ -99,7 +112,10 @@ class QAHubReporter {
       track(send({ ...base(test), status: "pending" }));
     });
 
-    runner.on("end", () => Promise.allSettled(pending));
+  }
+
+  done(_failures, callback) {
+    Promise.allSettled(this.pending).then(() => callback());
   }
 }
 

@@ -28,35 +28,49 @@ npm i -D mochawesome mochawesome-merge cypress-multi-reporters
 
 Copie `qahub-reporter.cjs` para `cypress/reporters/qahub-reporter.cjs`.
 
-## 4. `reporter-config.json` (raiz do repositório)
+## 4. `cypress.config.js`
 
-```json
-{
-  "reporterEnabled": "mochawesome, ./cypress/reporters/qahub-reporter.cjs",
-  "mochawesomeReporterOptions": {
-    "reportDir": "cypress/results",
-    "overwrite": false,
-    "html": false,
-    "json": true
-  }
-}
-```
-
-## 5. `cypress.config.js`
+Declare o reporter local com caminho absoluto. Isso evita que o GitHub Actions
+procure o arquivo na pasta errada:
 
 ```js
+const path = require("path");
+
 module.exports = defineConfig({
   reporter: "cypress-multi-reporters",
-  reporterOptions: { configFile: "reporter-config.json" },
+  reporterOptions: {
+    reporterEnabled: [
+      "mochawesome",
+      path.resolve(__dirname, "cypress/reporters/qahub-reporter.cjs"),
+    ],
+    mochawesomeReporterOptions: {
+      reportDir: "cypress/results",
+      overwrite: false,
+      html: false,
+      json: true,
+    },
+  },
   // ...resto da configuração
 });
 ```
 
-## 6. Workflow do GitHub Actions
+O arquivo `reporter-config.json` antigo deixa de ser usado e pode ser removido.
+
+## 5. Workflow do GitHub Actions
 
 Dentro do job do Cypress:
 
 ```yaml
+      - name: Validar integração QA Hub
+        shell: bash
+        env:
+          QAHUB_EVENTS_URL: ${{ secrets.QAHUB_EVENTS_URL }}
+          QAHUB_EVENTS_SECRET: ${{ secrets.QAHUB_EVENTS_SECRET }}
+        run: |
+          test -f cypress/reporters/qahub-reporter.cjs || { echo "Reporter QA Hub não encontrado"; exit 1; }
+          test -n "$QAHUB_EVENTS_URL" || { echo "QAHUB_EVENTS_URL não configurado"; exit 1; }
+          test -n "$QAHUB_EVENTS_SECRET" || { echo "QAHUB_EVENTS_SECRET não configurado"; exit 1; }
+
       - name: Rodar Cypress
         run: npx cypress run
         env:
@@ -69,14 +83,18 @@ Dentro do job do Cypress:
 
       - name: Enviar relatório ao QA Hub
         if: always()
+        env:
+          QAHUB_EVENTS_URL: ${{ secrets.QAHUB_EVENTS_URL }}
+          QAHUB_EVENTS_SECRET: ${{ secrets.QAHUB_EVENTS_SECRET }}
         run: |
+          test -s cypress/results/merged.json || { echo "Relatório consolidado não encontrado"; exit 1; }
           jq -n \
             --arg run "$GITHUB_RUN_ID" \
             --slurpfile report cypress/results/merged.json \
             '{type:"report", github_run_id:$run, report:$report[0]}' \
-          | curl -sS -X POST "${{ secrets.QAHUB_EVENTS_URL }}" \
+          | curl --fail-with-body -sS -X POST "$QAHUB_EVENTS_URL" \
               -H "Content-Type: application/json" \
-              -H "X-QAHub-Secret: ${{ secrets.QAHUB_EVENTS_SECRET }}" \
+              -H "X-QAHub-Secret: $QAHUB_EVENTS_SECRET" \
               --data-binary @-
 
       - name: Publicar artefatos
