@@ -74,39 +74,20 @@ export default function LatestRunCard({
       {!!failed.length && (
         <div className="space-y-1">
           <p className="text-xs uppercase text-muted-foreground">Testes que falharam</p>
-          {failed.slice(0, 10).map((test) => {
-            const url = specUrl(
-              repository,
-              run.commit_sha,
-              test.spec,
-              test.source_line,
-            );
-            return (
-              <div key={test.id} className="flex items-start gap-2 text-sm">
-                <StatusIcon status="failed" />
-                <span className="flex-1 break-words">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {test.spec}
-                  </span>{" "}
-                  {[...test.describe_path, test.title].join(" › ")}
-                </span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {formatDuration(test.duration_ms)}
-                </span>
-                {url && (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-muted-foreground hover:text-primary"
-                    aria-label="Ver teste no GitHub"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-              </div>
-            );
-          })}
+          {failed.slice(0, 10).map((test) => (
+            <div key={test.id} className="flex items-start gap-2 text-sm">
+              <StatusIcon status="failed" />
+              <span className="flex-1 break-words">
+                <span className="font-mono text-xs text-muted-foreground">
+                  {test.spec}
+                </span>{" "}
+                {[...test.describe_path, test.title].join(" › ")}
+              </span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {formatDuration(test.duration_ms)}
+              </span>
+            </div>
+          ))}
           {failed.length > 10 && (
             <p className="text-xs text-muted-foreground">
               e mais {failed.length - 10} falhas — abra os detalhes.
