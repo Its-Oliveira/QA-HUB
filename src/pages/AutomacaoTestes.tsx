@@ -45,6 +45,7 @@ type Catalog = {
 const PAGE_SIZE = 20;
 export default function AutomacaoTestes() {
   const client = useQueryClient();
+  const navigate = useNavigate();
   const [branch, setBranch] = useState("");
   const [workflow, setWorkflow] = useState("");
   const [inputs, setInputs] = useState<
