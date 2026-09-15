@@ -49,6 +49,10 @@ function findCypressSpec(value, seen = new Set()) {
     const found = findCypressSpec(value[key], seen);
     if (found) return found;
   }
+  for (const nested of Object.values(value)) {
+    const found = findCypressSpec(nested, seen);
+    if (found) return found;
+  }
   return "";
 }
 
