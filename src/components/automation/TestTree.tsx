@@ -85,17 +85,6 @@ function TestRow({
         <span className="text-xs text-muted-foreground whitespace-nowrap">
           {formatDuration(test.duration_ms)}
         </span>
-        {url && (
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground hover:text-primary"
-            aria-label="Ver teste no GitHub"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
       </div>
       {failed && (test.error_message || test.error_stack) && (
         <div className="ml-6 mt-1">
@@ -236,17 +225,6 @@ function Spec({
             {countTests(node)} testes
           </span>
         </button>
-        {url && (
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground hover:text-primary"
-            aria-label="Ver arquivo no GitHub"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        )}
       </div>
       {open && (
         <div className="mt-2">
