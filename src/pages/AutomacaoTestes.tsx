@@ -591,37 +591,6 @@ export default function AutomacaoTestes() {
               <p className="font-mono text-xs break-all">
                 Commit: {run.commit_sha || "—"}
               </p>
-              {safeUrl(run.report_url) && (
-                <a
-                  className="text-primary underline"
-                  href={safeUrl(run.report_url)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Abrir relatório Cypress
-                </a>
-              )}
-              <h3 className="font-semibold">Jobs e steps</h3>
-              {!run.jobs?.length && (
-                <p className="text-sm text-muted-foreground">
-                  Progresso ainda indisponível.
-                </p>
-              )}
-              {run.jobs?.map((job) => (
-                <div key={job.id} className="border rounded p-3 space-y-2">
-                  <p>
-                    {job.name} <Badge status={job.conclusion || job.status} />
-                  </p>
-                  {job.steps?.map((step) => (
-                    <p key={step.number} className="text-xs">
-                      {step.number}. {step.name} ·{" "}
-                      {labels[step.conclusion || step.status] ||
-                        step.conclusion ||
-                        step.status}
-                    </p>
-                  ))}
-                </div>
-              ))}
               <h3 className="font-semibold">Testes (spec › describe › it)</h3>
               {detailResults.isLoading && (
                 <p className="text-sm text-muted-foreground">Carregando testes…</p>

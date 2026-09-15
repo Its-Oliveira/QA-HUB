@@ -32,10 +32,34 @@ const SECRET = process.env.QAHUB_EVENTS_SECRET;
 const CORRELATION_ID = process.env.QAHUB_CORRELATION_ID || "";
 const GITHUB_RUN_ID = process.env.GITHUB_RUN_ID || "";
 
+/**
+ * Cypress rarely sets `test.file`; the spec path lives in
+ * `invocationDetails` (relativeFile/absoluteFile) of the test or one of its
+ * parent suites. Walk every known source before giving up.
+ */
+function rawSpecPath(test) {
+  let node = test;
+  while (node) {
+    const details = node.invocationDetails || {};
+    const candidate =
+      details.relativeFile || details.absoluteFile || node.file || "";
+    if (candidate) return candidate;
+    node = node.parent;
+  }
+  return (
+    process.env.SPEC ||
+    process.env.CYPRESS_SPEC ||
+    ""
+  );
+}
+
 function specPath(test) {
-  const file = test.file || (test.parent && test.parent.file) || "";
+  const file = rawSpecPath(test);
   if (!file) return "spec desconhecida";
-  return path.relative(process.cwd(), file).split(path.sep).join("/");
+  const normalized = path.isAbsolute(file)
+    ? path.relative(process.cwd(), file)
+    : file;
+  return normalized.split(path.sep).join("/").replace(/^\.\//, "");
 }
 
 function describePath(test) {
