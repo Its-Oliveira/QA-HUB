@@ -23,7 +23,7 @@ export default function LatestRunCard({
   const passed = rows.filter((r) => r.status === "passed").length;
 
   return (
-    <section className="rounded-lg border bg-card p-4 space-y-3">
+    <section className="max-h-[440px] space-y-3 overflow-y-auto rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-sm font-semibold">

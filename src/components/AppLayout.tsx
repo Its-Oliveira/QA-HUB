@@ -10,9 +10,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const initials = user?.email?.split("@")[0]?.split(".").map(w => w[0]?.toUpperCase()).join("") || "?";
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-x-hidden">
       <AppSidebar />
-      <main className={`flex-1 ml-56 ${automationView ? "p-5 lg:p-6" : "p-8"}`}>
+      <main className={`ml-56 min-w-0 flex-1 ${automationView ? "p-5 lg:p-6" : "p-8"}`}>
         <div className={`flex items-center justify-between ${automationView ? "mb-4" : "mb-8"}`}>
           <div />
           <div className="flex items-center gap-3">
