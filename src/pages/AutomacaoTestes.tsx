@@ -1,27 +1,19 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   actions,
-  activeStatus,
   duration,
-  safeUrl,
   type ActionRun,
   type WorkflowInput,
 } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Play, Loader2 } from "lucide-react";
-import TestTree from "@/components/automation/TestTree";
 import LatestRunCard from "@/components/automation/LatestRunCard";
-import { useTestResults, useTestResultsRealtime } from "@/lib/testResults";
+import { useTestResultsRealtime } from "@/lib/testResults";
 const labels: Record<string, string> = {
   queued: "Na fila",
   in_progress: "Em execução",
@@ -53,13 +45,14 @@ type Catalog = {
 const PAGE_SIZE = 20;
 export default function AutomacaoTestes() {
   const client = useQueryClient();
+  const navigate = useNavigate();
   const [branch, setBranch] = useState("");
   const [workflow, setWorkflow] = useState("");
   const [inputs, setInputs] = useState<
     Record<string, string | boolean | number>
   >({});
   const [busy, setBusy] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  
   const [filters, setFilters] = useState({
     branch: "",
     workflow: "",
@@ -178,31 +171,6 @@ export default function AutomacaoTestes() {
       return (data as unknown as ActionRun) || null;
     },
   });
-  const detail = useQuery({
-    queryKey: ["test_runs", "detail", selected],
-    enabled: !!selected,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("test_runs")
-        .select("*")
-        .eq("id", selected!)
-        .single();
-      if (error) throw error;
-      return data as unknown as ActionRun;
-    },
-  });
-  const artifacts = useQuery({
-    queryKey: [
-      "actions-artifacts",
-      detail.data?.github_run_id,
-      detail.data?.status,
-    ],
-    enabled: !!detail.data?.github_run_id,
-    queryFn: () =>
-      actions<
-        { id: number; name: string; expired: boolean; size_in_bytes: number }[]
-      >({ action: "artifacts", run: detail.data!.github_run_id }),
-  });
   useEffect(() => {
     const channel = supabase
       .channel("actions-control")
@@ -225,7 +193,6 @@ export default function AutomacaoTestes() {
     };
   }, [client]);
   useTestResultsRealtime();
-  const detailResults = useTestResults(selected);
   const duplicate = active.data?.some(
     (r) => r.workflow_id === workflow && r.branch === branch,
   );
@@ -245,7 +212,8 @@ export default function AutomacaoTestes() {
     setFilters((f) => ({ ...f, [key]: value }));
     setPage(0);
   }
-  const run = detail.data;
+  const openRun = (id: string) =>
+    navigate(`/automacao-testes/execucao/${id}`);
   return (
     <div className="space-y-6">
       <div>
@@ -386,7 +354,7 @@ export default function AutomacaoTestes() {
       <LatestRunCard
         run={latest.data}
         repository={catalog.data?.repository}
-        onOpen={setSelected}
+        onOpen={openRun}
       />
       <section className="space-y-3">
         <h2 className="font-semibold">Execuções em andamento</h2>
@@ -399,7 +367,7 @@ export default function AutomacaoTestes() {
           <button
             key={r.id}
             className="w-full rounded-lg border bg-card p-4 text-left flex flex-wrap gap-4"
-            onClick={() => setSelected(r.id)}
+            onClick={() => openRun(r.id)}
           >
             <Badge status={r.status} />
             <span>
@@ -538,7 +506,7 @@ export default function AutomacaoTestes() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelected(r.id)}
+                      onClick={() => openRun(r.id)}
                     >
                       Abrir
                     </Button>
@@ -568,123 +536,6 @@ export default function AutomacaoTestes() {
           </Button>
         </div>
       </section>
-      <Dialog
-        open={!!selected}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
-      >
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhes da execução</DialogTitle>
-          </DialogHeader>
-          {detail.isLoading && <p>Carregando…</p>}
-          {detail.error && <p role="alert">{detail.error.message}</p>}
-          {run && (
-            <div className="space-y-4">
-              <Badge status={run.status} />
-              <p>
-                {run.workflow_name} · {run.branch} · {duration(run)}
-                <br />
-                Disparado por {run.triggered_by}
-              </p>
-              <p className="font-mono text-xs break-all">
-                Commit: {run.commit_sha || "—"}
-              </p>
-              <h3 className="font-semibold">Testes (spec › describe › it)</h3>
-              {detailResults.isLoading && (
-                <p className="text-sm text-muted-foreground">Carregando testes…</p>
-              )}
-              <TestTree
-                results={detailResults.data || []}
-                repository={catalog.data?.repository}
-                commitSha={run.commit_sha}
-                emptyMessage={
-                  activeStatus(run.status)
-                    ? "Aguardando os primeiros testes…"
-                    : "Esta execução não enviou detalhamento por teste. Consulte o relatório ou baixe os artefatos."
-                }
-              />
-              {!detailResults.data?.length && !!run.failures?.length && (
-                <h3 className="font-semibold">Testes que falharam</h3>
-              )}
-              {!detailResults.data?.length &&
-                run.failures?.map((f, i) => (
-                <div key={i} className="border rounded p-3 space-y-2">
-                  <p className="font-medium">{f.name}</p>
-                  <pre className="text-xs whitespace-pre-wrap break-all">
-                    {f.message}
-                    {f.stack && `\n${f.stack}`}
-                  </pre>
-                  {safeUrl(f.screenshot) && (
-                    <a
-                      className="text-primary underline"
-                      href={safeUrl(f.screenshot)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Screenshot
-                    </a>
-                  )}
-                  {safeUrl(f.video) && (
-                    <a
-                      className="ml-3 text-primary underline"
-                      href={safeUrl(f.video)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Vídeo
-                    </a>
-                  )}
-                </div>
-              ))}
-              <h3 className="font-semibold">Artefatos</h3>
-              {artifacts.isLoading && <p>Carregando artefatos…</p>}
-              {artifacts.error && (
-                <p role="alert" className="text-destructive">
-                  {artifacts.error.message}
-                </p>
-              )}
-              {!artifacts.isLoading && !artifacts.data?.length && (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum artefato disponível.
-                </p>
-              )}
-              {artifacts.data?.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex justify-between gap-3 items-center"
-                >
-                  <span>
-                    {a.name} · {(a.size_in_bytes / 1024).toFixed(0)} KB
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={a.expired}
-                    onClick={async () => {
-                      try {
-                        const result = await actions<{ url: string }>({
-                          action: "download",
-                          artifact: a.id,
-                          run: run.github_run_id,
-                        });
-                        const url = safeUrl(result.url);
-                        if (!url) throw new Error("Download indisponível.");
-                        window.location.assign(url);
-                      } catch (error) {
-                        toast.error((error as Error).message);
-                      }
-                    }}
-                  >
-                    {a.expired ? "Expirado" : "Baixar ZIP"}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
