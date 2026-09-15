@@ -278,11 +278,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (rows.some((row) => !isUnknownSpec(row.spec))) {
+      const resolvedTitles = [...new Set(
+        rows.filter((row) => !isUnknownSpec(row.spec)).map((row) => row.full_title),
+      )];
+      for (let i = 0; i < resolvedTitles.length; i += 100) {
         await supabase
           .from("test_results")
           .delete()
           .eq("run_id", runId)
+          .in("full_title", resolvedTitles.slice(i, i + 100))
           .in("spec", ["spec desconhecida", "spec desconhecido"]);
       }
 
