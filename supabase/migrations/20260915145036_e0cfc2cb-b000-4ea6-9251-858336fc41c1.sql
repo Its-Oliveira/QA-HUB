@@ -1,0 +1,1 @@
+ALTER FUNCTION public.bind_workflow_run(UUID, TEXT) SECURITY INVOKER;

@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions_audit: {
+        Row: {
+          actor: string
+          actor_id: string | null
+          branch: string
+          correlation_id: string
+          created_at: string
+          id: string
+          workflow_id: string
+        }
+        Insert: {
+          actor: string
+          actor_id?: string | null
+          branch: string
+          correlation_id: string
+          created_at?: string
+          id?: string
+          workflow_id: string
+        }
+        Update: {
+          actor?: string
+          actor_id?: string | null
+          branch?: string
+          correlation_id?: string
+          created_at?: string
+          id?: string
+          workflow_id?: string
+        }
+        Relationships: []
+      }
+      actions_cache: {
+        Row: {
+          expires_at: string
+          key: string
+          value: Json
+        }
+        Insert: {
+          expires_at: string
+          key: string
+          value: Json
+        }
+        Update: {
+          expires_at?: string
+          key?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       automation_tracker: {
         Row: {
           created_at: string
@@ -181,15 +229,19 @@ export type Database = {
       }
       test_runs: {
         Row: {
+          actor_id: string | null
           branch: string
+          commit_sha: string | null
           correlation_id: string
           created_at: string
           duration_ms: number | null
           environment: string
           failed: number | null
+          failures: Json
           finished_at: string | null
           github_run_id: string | null
           id: string
+          jobs: Json
           passed: number | null
           report_url: string | null
           skipped: number | null
@@ -198,17 +250,23 @@ export type Database = {
           status: string
           total: number | null
           triggered_by: string
+          workflow_id: string | null
+          workflow_name: string | null
         }
         Insert: {
+          actor_id?: string | null
           branch: string
+          commit_sha?: string | null
           correlation_id: string
           created_at?: string
           duration_ms?: number | null
           environment: string
           failed?: number | null
+          failures?: Json
           finished_at?: string | null
           github_run_id?: string | null
           id?: string
+          jobs?: Json
           passed?: number | null
           report_url?: string | null
           skipped?: number | null
@@ -217,17 +275,23 @@ export type Database = {
           status?: string
           total?: number | null
           triggered_by: string
+          workflow_id?: string | null
+          workflow_name?: string | null
         }
         Update: {
+          actor_id?: string | null
           branch?: string
+          commit_sha?: string | null
           correlation_id?: string
           created_at?: string
           duration_ms?: number | null
           environment?: string
           failed?: number | null
+          failures?: Json
           finished_at?: string | null
           github_run_id?: string | null
           id?: string
+          jobs?: Json
           passed?: number | null
           report_url?: string | null
           skipped?: number | null
@@ -236,6 +300,8 @@ export type Database = {
           status?: string
           total?: number | null
           triggered_by?: string
+          workflow_id?: string | null
+          workflow_name?: string | null
         }
         Relationships: []
       }
@@ -244,6 +310,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bind_workflow_run: {
+        Args: { local_id: string; run_id: string }
+        Returns: undefined
+      }
       cleanup_old_completed_reminders: { Args: never; Returns: undefined }
     }
     Enums: {
