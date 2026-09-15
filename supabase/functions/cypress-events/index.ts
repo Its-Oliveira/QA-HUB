@@ -50,7 +50,8 @@ const isUnknownSpec = (spec: string) =>
 function findCypressSpec(value: unknown, seen = new Set<unknown>()): string {
   if (!value || seen.has(value)) return "";
   if (typeof value === "string") {
-    const match = value.replace(/\\/g, "/").match(/(?:^|[\s"'])([^\s"']+\.cy\.(?:js|jsx|ts|tsx))(?=$|[\s"'])/i);
+    const normalized = value.replace(/\\/g, "/").trim();
+    const match = normalized.match(/(?:^|["'])([^"'\r\n]+\.cy\.(?:js|jsx|ts|tsx))(?=$|["'])/i);
     return normalizeSpec(match?.[1] ?? "");
   }
   if (typeof value !== "object") return "";
