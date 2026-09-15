@@ -34,7 +34,19 @@ export interface TreeNode {
 }
 
 export interface SpecNode extends TreeNode {
+  /** Full spec path as reported (used for source links). */
   spec: string;
+  /** File name only, used as the label in the tree. */
+  fileName: string;
+}
+
+/** Directory grouping the specs; nests to any depth. */
+export interface FolderNode {
+  key: string;
+  /** Real directory name (single-child chains are joined with "/"). */
+  name: string;
+  folders: FolderNode[];
+  specs: SpecNode[];
 }
 
 const emptyNode = (key: string, title: string): TreeNode => ({
