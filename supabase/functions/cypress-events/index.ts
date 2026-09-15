@@ -44,6 +44,30 @@ const normalizeSpec = (spec: string) =>
     .replace(/^\.\//, "")
     .trim();
 
+const isUnknownSpec = (spec: string) =>
+  !spec || /^spec desconhecid[ao]$/i.test(normalizeSpec(spec));
+
+function findCypressSpec(value: unknown, seen = new Set<unknown>()): string {
+  if (!value || seen.has(value)) return "";
+  if (typeof value === "string") {
+    const normalized = value.replace(/\\/g, "/").trim();
+    const match = normalized.match(/(?:^|["'])([^"'\r\n]+\.cy\.(?:js|jsx|ts|tsx))(?=$|["'])/i);
+    return normalizeSpec(match?.[1] ?? "");
+  }
+  if (typeof value !== "object") return "";
+  seen.add(value);
+  const record = value as Record<string, unknown>;
+  for (const key of ["relativeFile", "absoluteFile", "file", "fullFile", "fileUrl"]) {
+    const found = findCypressSpec(record[key], seen);
+    if (found) return found;
+  }
+  for (const nested of Object.values(record)) {
+    const found = findCypressSpec(nested, seen);
+    if (found) return found;
+  }
+  return "";
+}
+
 const buildFullTitle = (describePath: string[], title: string) =>
   [...describePath, title].filter(Boolean).join(" > ");
 
@@ -135,14 +159,25 @@ function walkSuite(
   }
 }
 
-function parseReport(report: unknown, runId: string): TestRow[] {
+function parseReport(
+  report: unknown,
+  runId: string,
+  knownSpecs: Map<string, string>,
+): TestRow[] {
   const rows: TestRow[] = [];
   const results =
     (report as { results?: { file?: string; fullFile?: string; suites?: MochaSuite[] }[] })
       ?.results ?? [];
   for (const result of results) {
-    const spec = normalizeSpec(result.file || result.fullFile || "spec desconhecida");
-    walkSuite({ suites: result.suites ?? [] }, spec, runId, [], rows);
+    const detectedSpec = normalizeSpec(result.file || result.fullFile || findCypressSpec(result));
+    const resultRows: TestRow[] = [];
+    walkSuite({ suites: result.suites ?? [] }, detectedSpec, runId, [], resultRows);
+    for (const row of resultRows) {
+      row.spec = isUnknownSpec(row.spec)
+        ? knownSpecs.get(row.full_title) ?? "spec desconhecida"
+        : row.spec;
+      rows.push(row);
+    }
   }
   // de-duplicate on the upsert key (last one wins = final retry outcome)
   const byKey = new Map<string, TestRow>();
@@ -214,11 +249,27 @@ Deno.serve(async (req) => {
         .from("test_results")
         .upsert(row, { onConflict: "run_id,spec,full_title" });
       if (error) return json({ error: error.message }, 500);
+      if (!isUnknownSpec(spec)) {
+        await supabase
+          .from("test_results")
+          .delete()
+          .eq("run_id", runId)
+          .eq("full_title", row.full_title)
+          .in("spec", ["spec desconhecida", "spec desconhecido"]);
+      }
       return json({ ok: true });
     }
 
     if (type === "report") {
-      const rows = parseReport(body?.report ?? body, runId);
+      const { data: existing } = await supabase
+        .from("test_results")
+        .select("spec,full_title")
+        .eq("run_id", runId);
+      const knownSpecs = new Map<string, string>();
+      for (const item of existing ?? []) {
+        if (!isUnknownSpec(item.spec)) knownSpecs.set(item.full_title, item.spec);
+      }
+      const rows = parseReport(body?.report ?? body, runId, knownSpecs);
       if (rows.length) {
         for (let i = 0; i < rows.length; i += 200) {
           const { error } = await supabase
@@ -226,6 +277,18 @@ Deno.serve(async (req) => {
             .upsert(rows.slice(i, i + 200), { onConflict: "run_id,spec,full_title" });
           if (error) return json({ error: error.message }, 500);
         }
+      }
+
+      const resolvedTitles = [...new Set(
+        rows.filter((row) => !isUnknownSpec(row.spec)).map((row) => row.full_title),
+      )];
+      for (let i = 0; i < resolvedTitles.length; i += 100) {
+        await supabase
+          .from("test_results")
+          .delete()
+          .eq("run_id", runId)
+          .in("full_title", resolvedTitles.slice(i, i + 100))
+          .in("spec", ["spec desconhecida", "spec desconhecido"]);
       }
 
       // anything still "running" was never reported by the final artifact
