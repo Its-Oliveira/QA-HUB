@@ -56,14 +56,37 @@ const emptyNode = (key: string, title: string): TreeNode => ({
   tests: [],
 });
 
+/** Normalizes any reported path: windows separators, "./", leading slashes. */
+export function normalizeSpecPath(spec: string): string {
+  return String(spec || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/^\/+/, "")
+    .split("/")
+    .filter((part) => part && part !== ".")
+    .join("/");
+}
+
+/** Splits a spec path into its directory segments and the file name. */
+export function splitSpecPath(spec: string): { dirs: string[]; fileName: string } {
+  const parts = normalizeSpecPath(spec).split("/").filter(Boolean);
+  const fileName = parts.pop() || spec || "spec";
+  return { dirs: parts, fileName };
+}
+
 /** Groups flat results into spec > describe (nested) > it. */
 export function buildTree(results: TestResult[]): SpecNode[] {
   const specs = new Map<string, SpecNode>();
   for (const result of results) {
-    let spec = specs.get(result.spec);
+    const path = normalizeSpecPath(result.spec) || result.spec;
+    let spec = specs.get(path);
     if (!spec) {
-      spec = { ...emptyNode(result.spec, result.spec), spec: result.spec };
-      specs.set(result.spec, spec);
+      spec = {
+        ...emptyNode(path, path),
+        spec: path,
+        fileName: splitSpecPath(path).fileName,
+      };
+      specs.set(path, spec);
     }
     let node: TreeNode = spec;
     for (const title of result.describe_path) {
@@ -78,6 +101,58 @@ export function buildTree(results: TestResult[]): SpecNode[] {
     node.tests.push(result);
   }
   return [...specs.values()].sort((a, b) => a.spec.localeCompare(b.spec));
+}
+
+/** Collapses folders that only contain a single subfolder ("a" + "b" -> "a/b"). */
+function collapse(folder: FolderNode): FolderNode {
+  folder.folders = folder.folders.map(collapse);
+  while (folder.name && folder.folders.length === 1 && !folder.specs.length) {
+    const only = folder.folders[0];
+    folder.name = `${folder.name}/${only.name}`;
+    folder.key = only.key;
+    folder.folders = only.folders;
+    folder.specs = only.specs;
+  }
+  folder.folders.sort((a, b) => a.name.localeCompare(b.name));
+  folder.specs.sort((a, b) => a.spec.localeCompare(b.spec));
+  return folder;
+}
+
+/** Groups specs by their real directories, at any nesting depth. */
+export function buildFolderTree(results: TestResult[]): FolderNode {
+  const root: FolderNode = { key: "", name: "", folders: [], specs: [] };
+  for (const spec of buildTree(results)) {
+    const { dirs } = splitSpecPath(spec.spec);
+    let node = root;
+    for (const dir of dirs) {
+      const key = node.key ? `${node.key}/${dir}` : dir;
+      let child = node.folders.find((f) => f.key === key);
+      if (!child) {
+        child = { key, name: dir, folders: [], specs: [] };
+        node.folders.push(child);
+      }
+      node = child;
+    }
+    node.specs.push(spec);
+  }
+  return collapse(root);
+}
+
+/** Worst status inside a folder (specs + subfolders). */
+export function folderStatus(folder: FolderNode): TestStatus {
+  const all = [
+    ...folder.specs.map(nodeStatus),
+    ...folder.folders.map(folderStatus),
+  ];
+  if (!all.length) return "skipped";
+  return all.sort((a, b) => RANK[a] - RANK[b])[0];
+}
+
+export function countFolderTests(folder: FolderNode): number {
+  return (
+    folder.specs.reduce((sum, spec) => sum + countTests(spec), 0) +
+    folder.folders.reduce((sum, child) => sum + countFolderTests(child), 0)
+  );
 }
 
 const RANK: Record<TestStatus, number> = {
