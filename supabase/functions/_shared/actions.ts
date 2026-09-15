@@ -13,10 +13,12 @@ export const db = () =>
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+export const githubToken = () =>
+  Deno.env.get("GITHUB_TOKEN") || Deno.env.get("GITHUB_PAT");
 export function repository() {
   const owner = Deno.env.get("GITHUB_OWNER"),
     repo = Deno.env.get("GITHUB_REPO");
-  if (!owner || !repo || !Deno.env.get("GITHUB_PAT"))
+  if (!owner || !repo || !githubToken())
     throw new ApiError(503, "Integração GitHub não configurada no backend.");
   return `${owner}/${repo}`;
 }
@@ -26,7 +28,7 @@ export async function github(path: string, init: RequestInit = {}) {
     {
       ...init,
       headers: {
-        Authorization: `Bearer ${Deno.env.get("GITHUB_PAT")}`,
+        Authorization: `Bearer ${githubToken()}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2026-03-10",
         "Content-Type": "application/json",

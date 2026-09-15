@@ -117,7 +117,11 @@ export default function AutomacaoTestes() {
         .select("*", { count: "exact" })
         .order("created_at", { ascending: false });
       if (filters.branch) query = query.eq("branch", filters.branch);
-      if (filters.workflow) query = query.eq("workflow_id", filters.workflow);
+      if (filters.workflow)
+        query = query.eq(
+          "workflow_id" as never,
+          filters.workflow,
+        );
       if (filters.status)
         query = query.in(
           "status",
