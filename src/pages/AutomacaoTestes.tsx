@@ -211,7 +211,8 @@ export default function AutomacaoTestes() {
     setFilters((f) => ({ ...f, [key]: value }));
     setPage(0);
   }
-  const run = detail.data;
+  const openRun = (id: string) =>
+    navigate(`/automacao-testes/execucao/${id}`);
   return (
     <div className="space-y-6">
       <div>
