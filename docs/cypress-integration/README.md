@@ -32,7 +32,7 @@ Copie `qahub-reporter.cjs` para `cypress/reporters/qahub-reporter.cjs`.
 
 ```json
 {
-  "reporterEnabled": "mochawesome, cypress/reporters/qahub-reporter.cjs",
+  "reporterEnabled": "mochawesome, ./cypress/reporters/qahub-reporter.cjs",
   "mochawesomeReporterOptions": {
     "reportDir": "cypress/results",
     "overwrite": false,
