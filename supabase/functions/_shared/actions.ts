@@ -105,7 +105,15 @@ export async function definition(id: string, branch: string) {
   const bytes = Uint8Array.from(atob(content.content.replace(/\s/g, "")), (c) =>
     c.charCodeAt(0),
   );
-  const yaml = parse(new TextDecoder().decode(bytes));
+  let yaml;
+  try {
+    yaml = parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    throw new ApiError(
+      422,
+      `O arquivo do workflow (${workflow.path}) está com o YAML inválido: ${(error as Error).message}`,
+    );
+  }
   const on = yaml.on;
   const enabled =
     typeof on === "string"
