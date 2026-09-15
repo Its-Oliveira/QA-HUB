@@ -1,0 +1,92 @@
+name: Cypress
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Cypress E2E
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare Brazilian Portuguese locale
+        run: sudo locale-gen pt_BR.UTF-8
+
+      - name: Validar integração QA Hub
+        shell: bash
+        env:
+          QAHUB_EVENTS_URL: ${{ secrets.QAHUB_EVENTS_URL }}
+          QAHUB_EVENTS_SECRET: ${{ secrets.QAHUB_EVENTS_SECRET }}
+        run: |
+          test -f cypress/reporters/qahub-reporter.cjs || { echo "Reporter QA Hub não encontrado em cypress/reporters/qahub-reporter.cjs"; exit 1; }
+          test -n "$QAHUB_EVENTS_URL" || { echo "QAHUB_EVENTS_URL não configurado"; exit 1; }
+          test -n "$QAHUB_EVENTS_SECRET" || { echo "QAHUB_EVENTS_SECRET não configurado"; exit 1; }
+
+      - name: Run Cypress tests
+        env:
+          LANG: pt_BR.UTF-8
+          LC_ALL: pt_BR.UTF-8
+          LANGUAGE: pt_BR:pt
+          ELECTRON_EXTRA_LAUNCH_ARGS: --lang=pt-BR
+          CYPRESS_username: ${{ secrets.CYPRESS_USERNAME }}
+          CYPRESS_password: ${{ secrets.CYPRESS_PASSWORD }}
+          QAHUB_EVENTS_URL: ${{ secrets.QAHUB_EVENTS_URL }}
+          QAHUB_EVENTS_SECRET: ${{ secrets.QAHUB_EVENTS_SECRET }}
+        run: >-
+          npx cypress run --browser electron
+          --config 'specPattern=cypress/e2e/**/*.cy.js'
+          --spec 'cypress/e2e/Bases de Preço/**/*.cy.js,cypress/e2e/Cadastro/**/*.cy.js,cypress/e2e/Orcamento/**/*.cy.js'
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Consolidar relatório
+        if: always()
+        run: |
+          mkdir -p cypress/results
+          npx mochawesome-merge "cypress/results/*.json" > cypress/results/merged.json
+
+      - name: Enviar relatório ao QA Hub
+        if: always()
+        shell: bash
+        env:
+          QAHUB_EVENTS_URL: ${{ secrets.QAHUB_EVENTS_URL }}
+          QAHUB_EVENTS_SECRET: ${{ secrets.QAHUB_EVENTS_SECRET }}
+        run: |
+          test -s cypress/results/merged.json || { echo "Relatório consolidado não encontrado"; exit 1; }
+          jq -n \
+            --arg run "$GITHUB_RUN_ID" \
+            --slurpfile report cypress/results/merged.json \
+            '{type:"report", github_run_id:$run, report:$report[0]}' \
+          | curl --fail-with-body -sS -X POST "$QAHUB_EVENTS_URL" \
+              -H "Content-Type: application/json" \
+              -H "X-QAHub-Secret: $QAHUB_EVENTS_SECRET" \
+              --data-binary @-
+          echo "Relatório enviado ao QA Hub com sucesso."
+
+      - name: Publicar artefatos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results
+          path: |
+            cypress/results
+            cypress/screenshots
+            cypress/videos
