@@ -192,7 +192,6 @@ export default function AutomacaoTestes() {
     };
   }, [client]);
   useTestResultsRealtime();
-  const detailResults = useTestResults(selected);
   const duplicate = active.data?.some(
     (r) => r.workflow_id === workflow && r.branch === branch,
   );
