@@ -1,13 +1,7 @@
-import {
-  formatDuration,
-  specUrl,
-  useTestResults,
-  type TestResult,
-} from "@/lib/testResults";
+import { formatDuration, useTestResults, type TestResult } from "@/lib/testResults";
 import { activeStatus, duration, type ActionRun } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { StatusIcon } from "./TestTree";
-import { ExternalLink } from "lucide-react";
 
 /** Pinned card with the most recent run, independent of history filters. */
 export default function LatestRunCard({
