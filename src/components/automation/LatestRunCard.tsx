@@ -23,10 +23,10 @@ export default function LatestRunCard({
   const passed = rows.filter((r) => r.status === "passed").length;
 
   return (
-    <section className="rounded-lg border-2 border-primary/40 bg-card p-5 space-y-3">
+    <section className="rounded-lg border bg-card p-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold">
+          <h2 className="font-display text-sm font-semibold">
             Última execução {live && <span className="text-primary">· ao vivo</span>}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -34,12 +34,12 @@ export default function LatestRunCard({
             {new Date(run.created_at).toLocaleString("pt-BR")} · {duration(run)}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => onOpen(run.id)}>
+        <Button variant="outline" size="sm" className="h-8" onClick={() => onOpen(run.id)}>
           Ver detalhes
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-sm">
+      <div className="grid grid-cols-2 gap-2 border-y py-3 text-xs">
         <span className="text-success">{passed} passaram</span>
         <span className="text-destructive">{failed.length} falharam</span>
         {!!running.length && (
@@ -49,7 +49,7 @@ export default function LatestRunCard({
       </div>
 
       {live && !!running.length && (
-        <div className="space-y-1">
+        <div className="space-y-1 border-l-2 border-primary pl-3">
           <p className="text-xs uppercase text-muted-foreground">Executando agora</p>
           {running.slice(0, 5).map((test) => (
             <div key={test.id} className="flex items-center gap-2 text-sm">
@@ -66,7 +66,7 @@ export default function LatestRunCard({
       )}
 
       {!!failed.length && (
-        <div className="space-y-1">
+        <div className="space-y-1 border-l-2 border-destructive pl-3">
           <p className="text-xs uppercase text-muted-foreground">Testes que falharam</p>
           {failed.slice(0, 10).map((test) => (
             <div key={test.id} className="flex items-start gap-2 text-sm">

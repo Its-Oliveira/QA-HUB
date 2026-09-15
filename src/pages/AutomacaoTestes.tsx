@@ -390,13 +390,11 @@ export default function AutomacaoTestes() {
             </div>
             <div className="flex h-24 items-end gap-2" aria-label="Resumo visual das execuções recentes">
               {recentRuns.map((run) => {
-                const total = Math.max(run.total || 0, 1);
-                const passHeight = Math.max(((run.passed || 0) / total) * 100, 8);
-                const failHeight = ((run.failed || 0) / total) * 100;
+                const failed = ["failure", "failed", "error_ao_disparar", "timed_out"].includes(run.status);
+                const activeRun = ["queued", "in_progress", "em_execucao"].includes(run.status);
                 return (
-                  <div key={run.id} className="flex h-full flex-1 flex-col justify-end gap-0.5" title={`${run.workflow_name || "Cypress"}: ${run.passed || 0} passaram, ${run.failed || 0} falharam`}>
-                    {!!failHeight && <div className="w-full rounded-sm bg-destructive" style={{ height: `${failHeight}%` }} />}
-                    <div className="w-full rounded-sm bg-success" style={{ height: `${passHeight}%` }} />
+                  <div key={run.id} className="flex h-full flex-1 items-end" title={`${run.workflow_name || "Cypress"}: ${labels[run.status] || run.status}`}>
+                    <div className={`w-full rounded-sm ${failed ? "h-1/2 bg-destructive" : activeRun ? "h-3/4 bg-primary" : "h-full bg-success"}`} />
                   </div>
                 );
               })}

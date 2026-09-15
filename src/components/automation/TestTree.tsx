@@ -60,7 +60,7 @@ const CHUNK = 40;
 
 /** Consistent, comfortable hit area for every expand/collapse control. */
 const ROW =
-  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50";
+  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary";
 
 const Chevron = ({ open }: { open: boolean }) =>
   open ? (
@@ -73,8 +73,8 @@ function TestRow({ test }: { test: TestResult }) {
   const [open, setOpen] = useState(false);
   const failed = test.status === "failed";
   return (
-    <li className="border-b border-border/40 last:border-0">
-      <div className="flex items-start gap-2 px-2 py-2 text-sm">
+    <li className="border-b border-border/50 last:border-0">
+      <div className="flex min-h-9 items-start gap-2 px-2 py-2 text-sm hover:bg-secondary/40">
         <StatusIcon status={test.status} />
         <span className="flex-1 break-words">
           {test.title}
@@ -134,7 +134,7 @@ function TestList({ tests }: { tests: TestResult[] }) {
   const [limit, setLimit] = useState(CHUNK);
   return (
     <>
-      <ul className="border-l border-border/60 pl-3">
+      <ul className="ml-2 border-l border-border pl-4">
         {tests.slice(0, limit).map((test) => (
           <TestRow key={test.id} test={test} />
         ))}
@@ -175,7 +175,7 @@ function Branch({
         </span>
       </button>
       {open && (
-        <div className="ml-3 border-l border-border/60 pl-3">
+        <div className="ml-4 border-l border-border pl-4">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
@@ -192,18 +192,18 @@ function Spec({ node, link }: { node: SpecNode; link: LinkInfo }) {
   const status = nodeStatus(node);
   const [open, setOpen] = useState(status === "failed" || status === "running");
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="overflow-hidden rounded-md border bg-background/40">
       <button className={`${ROW} px-3 py-3`} onClick={() => setOpen((o) => !o)}>
         <Chevron open={open} />
         <StatusIcon status={status} />
-        <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <FileCode2 className="h-4 w-4 shrink-0 text-primary" />
         <span className="flex-1 break-all font-mono text-sm">{node.fileName}</span>
         <span className="shrink-0 text-xs text-muted-foreground">
           {countTests(node)} testes
         </span>
       </button>
       {open && (
-        <div className="border-t px-3 py-2">
+        <div className="border-t bg-background/30 px-3 py-2">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
@@ -231,22 +231,22 @@ function Folder({
     <div
       className={
         depth === 0
-          ? "rounded-xl border bg-secondary/40 p-2"
-          : "rounded-lg border border-dashed bg-background/40 p-2"
+          ? "rounded-lg border bg-secondary/30 p-2"
+          : "rounded-md border bg-background/40 p-2"
       }
     >
       <button className={`${ROW} px-3`} onClick={() => setOpen((o) => !o)}>
         <Chevron open={open} />
         <StatusIcon status={status} />
         {open ? (
-          <FolderOpen className="h-5 w-5 shrink-0 text-warning" />
+          <FolderOpen className="h-5 w-5 shrink-0 text-primary" />
         ) : (
-          <FolderIcon className="h-5 w-5 shrink-0 text-warning" />
+          <FolderIcon className="h-5 w-5 shrink-0 text-primary" />
         )}
         <span
           className={`flex-1 break-all ${
             depth === 0
-              ? "text-base font-semibold uppercase tracking-wide"
+              ? "font-display text-sm font-semibold"
               : "text-sm font-semibold"
           }`}
         >
@@ -257,7 +257,7 @@ function Folder({
         </span>
       </button>
       {open && (
-        <div className="mt-2 space-y-3 border-t pt-3 pl-4">
+        <div className="ml-4 mt-2 space-y-3 border-l border-t border-border pt-3 pl-4">
           {folder.folders.map((child) => (
             <Folder key={child.key} folder={child} link={link} depth={depth + 1} />
           ))}
@@ -286,7 +286,7 @@ export default function TestTree({
   const root = buildFolderTree(results);
   const link = { repository, commitSha };
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {root.folders.map((folder) => (
         <Folder key={folder.key} folder={folder} link={link} />
       ))}
