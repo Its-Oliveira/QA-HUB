@@ -1,27 +1,19 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   actions,
-  activeStatus,
   duration,
-  safeUrl,
   type ActionRun,
   type WorkflowInput,
 } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Play, Loader2 } from "lucide-react";
-import TestTree from "@/components/automation/TestTree";
 import LatestRunCard from "@/components/automation/LatestRunCard";
-import { useTestResults, useTestResultsRealtime } from "@/lib/testResults";
+import { useTestResultsRealtime } from "@/lib/testResults";
 const labels: Record<string, string> = {
   queued: "Na fila",
   in_progress: "Em execução",
