@@ -1,1 +1,9 @@
 project_id = "kdmruvwgxepwiwppuzlj"
+[functions.github-actions]
+verify_jwt = false
+
+[functions.github-actions-webhook]
+verify_jwt = false
+
+[functions.test-run-webhook]
+verify_jwt = false

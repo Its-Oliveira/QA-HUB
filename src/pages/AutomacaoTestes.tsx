@@ -1,307 +1,684 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, Loader2, ExternalLink, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  actions,
+  activeStatus,
+  duration,
+  safeUrl,
+  type ActionRun,
+  type WorkflowInput,
+} from "@/lib/actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
-
-type TestRun = Tables<"test_runs">;
-
-const statusConfig: Record<string, { label: string; className: string; pulse?: boolean }> = {
-  queued: { label: "Na fila", className: "bg-muted text-muted-foreground" },
-  em_execucao: { label: "Em execução", className: "bg-primary/20 text-primary", pulse: true },
-  passed: { label: "Sucesso", className: "bg-success/20 text-success" },
-  failed: { label: "Falha", className: "bg-destructive/20 text-destructive" },
-  error_ao_disparar: { label: "Erro ao disparar", className: "bg-destructive/20 text-destructive" },
+import { Play, Loader2 } from "lucide-react";
+const labels: Record<string, string> = {
+  queued: "Na fila",
+  in_progress: "Em execução",
+  em_execucao: "Em execução",
+  success: "Sucesso",
+  passed: "Sucesso",
+  failure: "Falha",
+  failed: "Falha",
+  cancelled: "Cancelado",
+  error_ao_disparar: "Erro ao disparar",
+  skipped: "Ignorado",
+  timed_out: "Tempo esgotado",
 };
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const cfg = statusConfig[status] || { label: status, className: "bg-muted text-muted-foreground" };
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded ${cfg.className}`}>
-      {cfg.pulse && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-      {cfg.label}
-    </span>
-  );
+const Badge = ({ status }: { status: string }) => (
+  <span
+    className={`rounded px-2 py-1 text-xs ${["failure", "failed", "error_ao_disparar", "timed_out"].includes(status) ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground"}`}
+  >
+    {labels[status] || status}
+  </span>
+);
+const selectClass =
+  "w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm";
+type Catalog = {
+  branches: string[];
+  workflows: { id: string; name: string }[];
+  environments: string[];
+  repository: string;
 };
-
-const fmtDuration = (ms?: number | null, start?: string | null, isRunning?: boolean, tick?: number) => {
-  let total = ms ?? 0;
-  if (isRunning && start) total = Date.now() - new Date(start).getTime();
-  if (!total || total < 0) return "—";
-  const s = Math.floor(total / 1000);
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  return m > 0 ? `${m}m ${rem}s` : `${rem}s`;
-};
-
-const fmtDate = (iso?: string | null) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
-};
-
-const AutomacaoTestes = () => {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const [environment, setEnvironment] = useState<"homolog" | "producao">("homolog");
-  const [spec, setSpec] = useState("");
-  const [branch, setBranch] = useState("main");
-  const [triggering, setTriggering] = useState(false);
-  const [selectedRun, setSelectedRun] = useState<TestRun | null>(null);
-  const [tick, setTick] = useState(0);
-
-  const { data: runs = [] } = useQuery({
-    queryKey: ["test_runs"],
+const PAGE_SIZE = 20;
+export default function AutomacaoTestes() {
+  const client = useQueryClient();
+  const [branch, setBranch] = useState("");
+  const [workflow, setWorkflow] = useState("");
+  const [inputs, setInputs] = useState<
+    Record<string, string | boolean | number>
+  >({});
+  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    branch: "",
+    workflow: "",
+    status: "",
+    from: "",
+    to: "",
+  });
+  const [page, setPage] = useState(0);
+  const [connected, setConnected] = useState(false);
+  const [, tick] = useState(0);
+  const catalog = useQuery({
+    queryKey: ["actions-catalog"],
+    queryFn: () => actions<Catalog>({ action: "catalog" }),
+    staleTime: 60000,
+  });
+  useEffect(() => {
+    if (catalog.data) {
+      setBranch((b) => b || catalog.data.branches[0] || "");
+      setWorkflow((w) => w || catalog.data.workflows[0]?.id || "");
+    }
+  }, [catalog.data]);
+  const definition = useQuery({
+    queryKey: ["actions-definition", workflow, branch],
+    enabled: !!workflow && !!branch,
+    queryFn: () =>
+      actions<{ inputs: Record<string, WorkflowInput> }>({
+        action: "definition",
+        workflow,
+        branch,
+      }),
+    staleTime: 60000,
+  });
+  useEffect(() => {
+    setInputs(
+      Object.fromEntries(
+        Object.entries(definition.data?.inputs || {}).map(([key, spec]) => [
+          key,
+          spec.default ?? (spec.type === "boolean" ? false : ""),
+        ]),
+      ),
+    );
+  }, [definition.data]);
+  const bootstrap = useQuery({
+    queryKey: ["actions-bootstrap"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("test_runs").select("*").order("created_at", { ascending: false }).limit(100);
+      await actions({ action: "bootstrap" });
+      await client.invalidateQueries({ queryKey: ["test_runs"] });
+      return true;
+    },
+    staleTime: 300000,
+    retry: false,
+  });
+  const history = useQuery({
+    queryKey: ["test_runs", filters, page],
+    queryFn: async () => {
+      let query = supabase
+        .from("test_runs")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false });
+      if (filters.branch) query = query.eq("branch", filters.branch);
+      if (filters.workflow) query = query.eq("workflow_id", filters.workflow);
+      if (filters.status)
+        query = query.in(
+          "status",
+          filters.status === "success"
+            ? ["success", "passed"]
+            : filters.status === "failure"
+              ? ["failure", "failed"]
+              : filters.status === "in_progress"
+                ? ["in_progress", "em_execucao"]
+                : [filters.status],
+        );
+      if (filters.from)
+        query = query.gte(
+          "created_at",
+          new Date(`${filters.from}T00:00:00`).toISOString(),
+        );
+      if (filters.to)
+        query = query.lte(
+          "created_at",
+          new Date(`${filters.to}T23:59:59.999`).toISOString(),
+        );
+      const { data, error, count } = await query.range(
+        page * PAGE_SIZE,
+        (page + 1) * PAGE_SIZE - 1,
+      );
       if (error) throw error;
-      return (data || []) as TestRun[];
+      return { runs: data as unknown as ActionRun[], count: count || 0 };
     },
   });
-
-  // Realtime subscription
+  const active = useQuery({
+    queryKey: ["test_runs", "active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("test_runs")
+        .select("*")
+        .in("status", ["queued", "in_progress", "em_execucao"]);
+      if (error) throw error;
+      return data as unknown as ActionRun[];
+    },
+  });
+  const detail = useQuery({
+    queryKey: ["test_runs", "detail", selected],
+    enabled: !!selected,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("test_runs")
+        .select("*")
+        .eq("id", selected!)
+        .single();
+      if (error) throw error;
+      return data as unknown as ActionRun;
+    },
+  });
+  const artifacts = useQuery({
+    queryKey: [
+      "actions-artifacts",
+      detail.data?.github_run_id,
+      detail.data?.status,
+    ],
+    enabled: !!detail.data?.github_run_id,
+    queryFn: () =>
+      actions<
+        { id: number; name: string; expired: boolean; size_in_bytes: number }[]
+      >({ action: "artifacts", run: detail.data!.github_run_id }),
+  });
   useEffect(() => {
     const channel = supabase
-      .channel("test_runs_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "test_runs" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["test_runs"] });
-      })
-      .subscribe();
+      .channel("actions-control")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "test_runs" },
+        () => {
+          client.invalidateQueries({ queryKey: ["test_runs"] });
+        },
+      )
+      .subscribe((status) => {
+        setConnected(status === "SUBSCRIBED");
+        if (status === "SUBSCRIBED")
+          client.invalidateQueries({ queryKey: ["test_runs"] });
+      });
+    const timer = setInterval(() => tick((t) => t + 1), 1000);
     return () => {
+      clearInterval(timer);
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
-
-  const currentRun = runs[0];
-  const isRunning = currentRun && (currentRun.status === "queued" || currentRun.status === "em_execucao");
-
-  // Ticker for elapsed time while running
-  useEffect(() => {
-    if (!isRunning) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, [isRunning]);
-
-  const triggeredBy = useMemo(() => {
-    const email = user?.email || "";
-    return email.split("@")[0] || "desconhecido";
-  }, [user]);
-
-  const handleTrigger = async () => {
-    if (isRunning) {
-      toast.error("Já existe um teste em execução");
-      return;
-    }
-    setTriggering(true);
+  }, [client]);
+  const duplicate = active.data?.some(
+    (r) => r.workflow_id === workflow && r.branch === branch,
+  );
+  async function dispatch() {
+    setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("trigger-cypress-run", {
-        body: { branch, environment, spec: spec.trim() || null, triggered_by: triggeredBy },
-      });
-      if (error) throw error;
-      toast.success("Testes disparados!");
-      setSpec("");
-      queryClient.invalidateQueries({ queryKey: ["test_runs"] });
-    } catch (e: any) {
-      toast.error(`Erro ao disparar: ${e.message || e}`);
+      await actions({ action: "dispatch", workflow, branch, inputs });
+      toast.success("Workflow disparado!");
+      await client.invalidateQueries({ queryKey: ["test_runs"] });
+    } catch (error) {
+      toast.error((error as Error).message);
     } finally {
-      setTriggering(false);
+      setBusy(false);
     }
-  };
-
-  const buttonDisabled = triggering || !!isRunning;
-
+  }
+  function filter(key: keyof typeof filters, value: string) {
+    setFilters((f) => ({ ...f, [key]: value }));
+    setPage(0);
+  }
+  const run = detail.data;
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-foreground mb-6">Automação de Testes</h1>
-
-      {/* Trigger form */}
-      <div className="bg-card border border-border rounded-lg p-5 mb-6">
-        <h2 className="text-sm font-semibold text-foreground mb-4">Disparar nova execução</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-          <div>
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Ambiente</label>
-            <select
-              value={environment}
-              onChange={(e) => setEnvironment(e.target.value as "homolog" | "producao")}
-              className="w-full bg-secondary text-foreground text-sm rounded-md px-3 py-2 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="homolog">Homolog</option>
-              <option value="producao">Produção</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Branch</label>
-            <input
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              placeholder="main"
-              className="w-full bg-secondary text-foreground text-sm rounded-md px-3 py-2 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Spec (opcional)</label>
-            <input
-              value={spec}
-              onChange={(e) => setSpec(e.target.value)}
-              placeholder="cypress/e2e/login.cy.ts"
-              className="w-full bg-secondary text-foreground text-sm rounded-md px-3 py-2 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-          <button
-            onClick={handleTrigger}
-            disabled={buttonDisabled}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
-          >
-            {buttonDisabled ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {isRunning ? "Em execução..." : "Rodar testes"}
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Automação de Testes</h1>
+        <p className="text-sm text-muted-foreground">
+          {connected
+            ? "Atualizações em tempo real conectadas"
+            : "Conectando às atualizações em tempo real…"}
+        </p>
       </div>
-
-      {/* Current status card */}
-      <div className="bg-card border border-border rounded-lg p-5 mb-6">
-        <h2 className="text-sm font-semibold text-foreground mb-3">Status atual</h2>
-        {!currentRun ? (
-          <p className="text-sm text-muted-foreground">Nenhuma execução registrada ainda.</p>
+      {[catalog.error, bootstrap.error, history.error, active.error]
+        .filter(Boolean)
+        .map((error, i) => (
+          <p key={i} role="alert" className="text-sm text-destructive">
+            {(error as Error).message}{" "}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => client.invalidateQueries()}
+            >
+              Tentar novamente
+            </Button>
+          </p>
+        ))}
+      <section className="rounded-lg border bg-card p-5 space-y-4">
+        <h2 className="font-semibold">Disparar nova execução</h2>
+        {catalog.isLoading ? (
+          <p>Carregando branches e workflows…</p>
+        ) : catalog.data && !catalog.data.workflows.length ? (
+          <p>Nenhum workflow ativo encontrado.</p>
         ) : (
-          <div className="flex items-center flex-wrap gap-6">
-            <StatusBadge status={currentRun.status} />
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Disparado por</p>
-              <p className="text-sm text-foreground">{currentRun.triggered_by}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Branch</p>
-              <p className="text-sm text-foreground font-mono">{currentRun.branch}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ambiente</p>
-              <p className="text-sm text-foreground">{currentRun.environment}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                {isRunning ? "Tempo decorrido" : "Duração"}
-              </p>
-              <p className="text-sm text-foreground font-mono">
-                {fmtDuration(
-                  currentRun.duration_ms,
-                  currentRun.started_at || currentRun.created_at,
-                  !!isRunning,
-                  tick
-                )}
-              </p>
-            </div>
-            {currentRun.report_url && (
-              <a
-                href={currentRun.report_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto flex items-center gap-1.5 text-xs text-primary hover:underline"
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-sm">
+              Branch
+              <select
+                className={selectClass}
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
               >
-                Ver relatório <ExternalLink className="w-3 h-3" />
-              </a>
+                {catalog.data?.branches.map((b) => (
+                  <option key={b}>{b}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              Workflow
+              <select
+                className={selectClass}
+                value={workflow}
+                onChange={(e) => setWorkflow(e.target.value)}
+              >
+                {catalog.data?.workflows.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {definition.isLoading && <p>Carregando inputs…</p>}
+            {definition.error && (
+              <p role="alert" className="text-destructive">
+                {definition.error.message}
+              </p>
+            )}
+            {Object.entries(definition.data?.inputs || {}).map(
+              ([key, spec]) => (
+                <label key={key} className="text-sm space-y-1">
+                  <span>
+                    {spec.description || key}
+                    {spec.required ? " *" : ""}
+                  </span>
+                  {spec.type === "boolean" ? (
+                    <input
+                      className="ml-2"
+                      type="checkbox"
+                      checked={inputs[key] === true}
+                      onChange={(e) =>
+                        setInputs((v) => ({ ...v, [key]: e.target.checked }))
+                      }
+                    />
+                  ) : ["choice", "environment"].includes(spec.type || "") ? (
+                    <select
+                      className={selectClass}
+                      value={String(inputs[key] ?? "")}
+                      onChange={(e) =>
+                        setInputs((v) => ({ ...v, [key]: e.target.value }))
+                      }
+                    >
+                      <option value="">Selecione</option>
+                      {(spec.type === "environment"
+                        ? catalog.data?.environments || []
+                        : spec.options || []
+                      ).map((o) => (
+                        <option key={o}>{o}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      type={spec.type === "number" ? "number" : "text"}
+                      value={String(inputs[key] ?? "")}
+                      onChange={(e) =>
+                        setInputs((v) => ({ ...v, [key]: e.target.value }))
+                      }
+                    />
+                  )}
+                </label>
+              ),
             )}
           </div>
         )}
-      </div>
-
-      {/* History */}
-      <h2 className="text-sm font-semibold text-foreground mb-3">Histórico</h2>
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Data/Hora</th>
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Por</th>
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Branch</th>
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Ambiente</th>
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Duração</th>
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">T / P / F / S</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.length === 0 && (
+        {duplicate && (
+          <p className="text-sm text-muted-foreground">
+            Já existe uma execução ativa para este workflow e branch.
+          </p>
+        )}
+        <Button
+          disabled={
+            busy ||
+            duplicate ||
+            !definition.data ||
+            definition.isFetching ||
+            definition.isError ||
+            Object.entries(definition.data?.inputs || {}).some(
+              ([key, spec]) =>
+                spec.required && (inputs[key] === "" || inputs[key] == null),
+            )
+          }
+          onClick={dispatch}
+        >
+          {busy ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Play className="mr-2 h-4 w-4" />
+          )}
+          Rodar
+        </Button>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold">Execuções em andamento</h2>
+        {!active.data?.length && (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma execução ativa.
+          </p>
+        )}
+        {active.data?.map((r) => (
+          <button
+            key={r.id}
+            className="w-full rounded-lg border bg-card p-4 text-left flex flex-wrap gap-4"
+            onClick={() => setSelected(r.id)}
+          >
+            <Badge status={r.status} />
+            <span>
+              {r.workflow_name} · {r.branch}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {r.triggered_by} · {duration(r)}
+            </span>
+          </button>
+        ))}
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-semibold">Histórico</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <label className="text-xs">
+            Branch
+            <select
+              className={selectClass}
+              value={filters.branch}
+              onChange={(e) => filter("branch", e.target.value)}
+            >
+              <option value="">Todas</option>
+              {catalog.data?.branches.map((b) => (
+                <option key={b}>{b}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs">
+            Workflow
+            <select
+              className={selectClass}
+              value={filters.workflow}
+              onChange={(e) => filter("workflow", e.target.value)}
+            >
+              <option value="">Todos</option>
+              {catalog.data?.workflows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs">
+            Status
+            <select
+              className={selectClass}
+              value={filters.status}
+              onChange={(e) => filter("status", e.target.value)}
+            >
+              <option value="">Todos</option>
+              {[
+                "queued",
+                "in_progress",
+                "success",
+                "failure",
+                "cancelled",
+                "error_ao_disparar",
+              ].map((s) => (
+                <option key={s} value={s}>
+                  {labels[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs">
+            De
+            <Input
+              type="date"
+              value={filters.from}
+              onChange={(e) => filter("from", e.target.value)}
+            />
+          </label>
+          <label className="text-xs">
+            Até
+            <Input
+              type="date"
+              min={filters.from}
+              value={filters.to}
+              onChange={(e) => filter("to", e.target.value)}
+            />
+          </label>
+        </div>
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full text-sm">
+            <thead>
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
-                  Nenhuma execução ainda.
-                </td>
+                {[
+                  "Data/hora",
+                  "Workflow",
+                  "Branch / commit",
+                  "Disparado por",
+                  "Status",
+                  "Duração",
+                  "Detalhes",
+                ].map((h) => (
+                  <th key={h} className="p-3 text-left text-muted-foreground">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            )}
-            {runs.map((r) => (
-              <tr
-                key={r.id}
-                onClick={() => setSelectedRun(r)}
-                className="border-b border-border last:border-0 hover:bg-secondary/40 cursor-pointer transition-colors"
-              >
-                <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.created_at)}</td>
-                <td className="px-4 py-3 text-sm text-foreground">{r.triggered_by}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{r.branch}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{r.environment}</td>
-                <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
-                <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{fmtDuration(r.duration_ms)}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
-                  {r.total ?? "—"} / <span className="text-success">{r.passed ?? "—"}</span> /{" "}
-                  <span className="text-destructive">{r.failed ?? "—"}</span> / {r.skipped ?? "—"}
-                </td>
-                <td className="px-4 py-3">
-                  {r.report_url && (
-                    <a
-                      href={r.report_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            </thead>
+            <tbody>
+              {history.isLoading && (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center">
+                    Carregando histórico…
+                  </td>
+                </tr>
+              )}
+              {!history.isLoading && !history.data?.runs.length && (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center">
+                    Nenhuma execução encontrada.
+                  </td>
+                </tr>
+              )}
+              {history.data?.runs.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="p-3 whitespace-nowrap">
+                    {new Date(r.created_at).toLocaleString("pt-BR")}
+                  </td>
+                  <td className="p-3">{r.workflow_name || "Cypress"}</td>
+                  <td className="p-3 font-mono">
+                    {r.branch}
+                    <br />
+                    <span className="text-xs text-muted-foreground">
+                      {r.commit_sha?.slice(0, 7)}
+                    </span>
+                  </td>
+                  <td className="p-3">{r.triggered_by}</td>
+                  <td className="p-3">
+                    <Badge status={r.status} />
+                  </td>
+                  <td className="p-3 whitespace-nowrap">{duration(r)}</td>
+                  <td className="p-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelected(r.id)}
                     >
-                      Ver <ExternalLink className="w-3 h-3" />
+                      Abrir
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            disabled={!page}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Anterior
+          </Button>
+          <span className="text-sm">
+            Página {page + 1} · {history.data?.count || 0} execuções
+          </span>
+          <Button
+            variant="outline"
+            disabled={(page + 1) * PAGE_SIZE >= (history.data?.count || 0)}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Próxima
+          </Button>
+        </div>
+      </section>
+      <Dialog
+        open={!!selected}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da execução</DialogTitle>
+          </DialogHeader>
+          {detail.isLoading && <p>Carregando…</p>}
+          {detail.error && <p role="alert">{detail.error.message}</p>}
+          {run && (
+            <div className="space-y-4">
+              <Badge status={run.status} />
+              <p>
+                {run.workflow_name} · {run.branch} · {duration(run)}
+                <br />
+                Disparado por {run.triggered_by}
+              </p>
+              <p className="font-mono text-xs break-all">
+                Commit: {run.commit_sha || "—"}
+              </p>
+              {safeUrl(run.report_url) && (
+                <a
+                  className="text-primary underline"
+                  href={safeUrl(run.report_url)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Abrir relatório Cypress
+                </a>
+              )}
+              <h3 className="font-semibold">Jobs e steps</h3>
+              {!run.jobs?.length && (
+                <p className="text-sm text-muted-foreground">
+                  Progresso ainda indisponível.
+                </p>
+              )}
+              {run.jobs?.map((job) => (
+                <div key={job.id} className="border rounded p-3 space-y-2">
+                  <p>
+                    {job.name} <Badge status={job.conclusion || job.status} />
+                  </p>
+                  {job.steps?.map((step) => (
+                    <p key={step.number} className="text-xs">
+                      {step.number}. {step.name} ·{" "}
+                      {labels[step.conclusion || step.status] ||
+                        step.conclusion ||
+                        step.status}
+                    </p>
+                  ))}
+                </div>
+              ))}
+              <h3 className="font-semibold">Testes que falharam</h3>
+              {!run.failures?.length && (
+                <p className="text-sm text-muted-foreground">
+                  {["failed", "failure"].includes(run.status)
+                    ? "Detalhes de testes não enviados pelo workflow. Consulte o relatório ou baixe os artefatos."
+                    : "Nenhuma falha de teste reportada."}
+                </p>
+              )}
+              {run.failures?.map((f, i) => (
+                <div key={i} className="border rounded p-3 space-y-2">
+                  <p className="font-medium">{f.name}</p>
+                  <pre className="text-xs whitespace-pre-wrap break-all">
+                    {f.message}
+                    {f.stack && `\n${f.stack}`}
+                  </pre>
+                  {safeUrl(f.screenshot) && (
+                    <a
+                      className="text-primary underline"
+                      href={safeUrl(f.screenshot)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Screenshot
                     </a>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Details panel */}
-      {selectedRun && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedRun(null)}>
-          <div className="bg-card border border-border rounded-lg p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Detalhes da execução</h3>
-              <button onClick={() => setSelectedRun(null)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-4 h-4" />
-              </button>
+                  {safeUrl(f.video) && (
+                    <a
+                      className="ml-3 text-primary underline"
+                      href={safeUrl(f.video)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Vídeo
+                    </a>
+                  )}
+                </div>
+              ))}
+              <h3 className="font-semibold">Artefatos</h3>
+              {artifacts.isLoading && <p>Carregando artefatos…</p>}
+              {artifacts.error && (
+                <p role="alert" className="text-destructive">
+                  {artifacts.error.message}
+                </p>
+              )}
+              {!artifacts.isLoading && !artifacts.data?.length && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum artefato disponível.
+                </p>
+              )}
+              {artifacts.data?.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex justify-between gap-3 items-center"
+                >
+                  <span>
+                    {a.name} · {(a.size_in_bytes / 1024).toFixed(0)} KB
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={a.expired}
+                    onClick={async () => {
+                      try {
+                        const result = await actions<{ url: string }>({
+                          action: "download",
+                          artifact: a.id,
+                          run: run.github_run_id,
+                        });
+                        const url = safeUrl(result.url);
+                        if (!url) throw new Error("Download indisponível.");
+                        window.location.assign(url);
+                      } catch (error) {
+                        toast.error((error as Error).message);
+                      }
+                    }}
+                  >
+                    {a.expired ? "Expirado" : "Baixar ZIP"}
+                  </Button>
+                </div>
+              ))}
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-[10px] text-muted-foreground uppercase">Status</p><StatusBadge status={selectedRun.status} /></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Correlation ID</p><p className="text-xs font-mono text-foreground break-all">{selectedRun.correlation_id}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Disparado por</p><p className="text-foreground">{selectedRun.triggered_by}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">GitHub Run ID</p><p className="text-foreground font-mono text-xs">{selectedRun.github_run_id || "—"}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Branch</p><p className="text-foreground font-mono">{selectedRun.branch}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Ambiente</p><p className="text-foreground">{selectedRun.environment}</p></div>
-              <div className="col-span-2"><p className="text-[10px] text-muted-foreground uppercase">Spec</p><p className="text-foreground font-mono text-xs">{selectedRun.spec || "—"}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Criado</p><p className="text-foreground">{fmtDate(selectedRun.created_at)}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Iniciado</p><p className="text-foreground">{fmtDate(selectedRun.started_at)}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Finalizado</p><p className="text-foreground">{fmtDate(selectedRun.finished_at)}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Duração</p><p className="text-foreground font-mono">{fmtDuration(selectedRun.duration_ms)}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Total</p><p className="text-foreground font-mono">{selectedRun.total ?? "—"}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Passou</p><p className="text-success font-mono">{selectedRun.passed ?? "—"}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Falhou</p><p className="text-destructive font-mono">{selectedRun.failed ?? "—"}</p></div>
-              <div><p className="text-[10px] text-muted-foreground uppercase">Pulou</p><p className="text-foreground font-mono">{selectedRun.skipped ?? "—"}</p></div>
-            </div>
-            {selectedRun.report_url && (
-              <a href={selectedRun.report_url} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                Abrir relatório completo <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default AutomacaoTestes;
+}

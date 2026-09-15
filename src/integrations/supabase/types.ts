@@ -181,6 +181,13 @@ export type Database = {
       }
       test_runs: {
         Row: {
+          workflow_id: string | null
+          workflow_name: string | null
+          commit_sha: string | null
+          actor_id: string | null
+          jobs: Json
+          failures: Json
+
           branch: string
           correlation_id: string
           created_at: string
@@ -200,6 +207,13 @@ export type Database = {
           triggered_by: string
         }
         Insert: {
+          workflow_id?: string | null
+          workflow_name?: string | null
+          commit_sha?: string | null
+          actor_id?: string | null
+          jobs?: Json
+          failures?: Json
+
           branch: string
           correlation_id: string
           created_at?: string
@@ -219,6 +233,13 @@ export type Database = {
           triggered_by: string
         }
         Update: {
+          workflow_id?: string | null
+          workflow_name?: string | null
+          commit_sha?: string | null
+          actor_id?: string | null
+          jobs?: Json
+          failures?: Json
+
           branch?: string
           correlation_id?: string
           created_at?: string
