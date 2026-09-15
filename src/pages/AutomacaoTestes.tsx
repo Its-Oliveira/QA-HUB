@@ -170,31 +170,6 @@ export default function AutomacaoTestes() {
       return (data as unknown as ActionRun) || null;
     },
   });
-  const detail = useQuery({
-    queryKey: ["test_runs", "detail", selected],
-    enabled: !!selected,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("test_runs")
-        .select("*")
-        .eq("id", selected!)
-        .single();
-      if (error) throw error;
-      return data as unknown as ActionRun;
-    },
-  });
-  const artifacts = useQuery({
-    queryKey: [
-      "actions-artifacts",
-      detail.data?.github_run_id,
-      detail.data?.status,
-    ],
-    enabled: !!detail.data?.github_run_id,
-    queryFn: () =>
-      actions<
-        { id: number; name: string; expired: boolean; size_in_bytes: number }[]
-      >({ action: "artifacts", run: detail.data!.github_run_id }),
-  });
   useEffect(() => {
     const channel = supabase
       .channel("actions-control")
