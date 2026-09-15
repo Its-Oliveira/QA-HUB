@@ -187,6 +187,8 @@ Deno.serve(async (req) => {
       throw error;
     }
   } catch (error) {
+    if (!(error instanceof ApiError))
+      console.error("github-actions failure:", error);
     return json(
       {
         error:
