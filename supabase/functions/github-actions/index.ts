@@ -157,23 +157,39 @@ Deno.serve(async (req) => {
         correlation_id,
       });
       if (audit.error) throw new ApiError(500, "Falha ao registrar auditoria.");
-      const response = await github(
-        `actions/workflows/${workflow.id}/dispatches`,
-        { method: "POST", body: JSON.stringify({ ref: body.branch, inputs }) },
-      );
-      const dispatch = await response.json();
+      const since = Date.now() - 60_000;
+      // workflow_dispatch responds 204 with an empty body: the run id must be polled.
+      await github(`actions/workflows/${workflow.id}/dispatches`, {
+        method: "POST",
+        body: JSON.stringify({ ref: body.branch, inputs }),
+      });
+      let run: { id: number } | undefined;
+      for (let attempt = 0; attempt < 10 && !run; attempt++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const recent = await (
+          await github(
+            `actions/workflows/${workflow.id}/runs?branch=${encodeURIComponent(body.branch)}&event=workflow_dispatch&per_page=10`,
+          )
+        ).json();
+        run = (recent.workflow_runs || []).find(
+          (r: { created_at: string }) => Date.parse(r.created_at) >= since,
+        );
+      }
+      if (!run)
+        throw new ApiError(
+          504,
+          "Workflow disparado, mas o GitHub ainda não registrou a execução.",
+        );
       const { error: link } = await store.rpc("bind_workflow_run", {
         local_id: local.id,
-        run_id: String(dispatch.workflow_run_id),
+        run_id: String(run.id),
       });
       if (link)
         throw new ApiError(
           500,
           "Workflow disparado, mas falhou a associação do histórico.",
         );
-      await syncRun(
-        await (await github(`actions/runs/${dispatch.workflow_run_id}`)).json(),
-      );
+      await syncRun(await (await github(`actions/runs/${run.id}`)).json());
       return json({ ok: true, correlation_id });
     } catch (error) {
       await store
@@ -187,6 +203,8 @@ Deno.serve(async (req) => {
       throw error;
     }
   } catch (error) {
+    if (!(error instanceof ApiError))
+      console.error("github-actions failure:", error);
     return json(
       {
         error:
