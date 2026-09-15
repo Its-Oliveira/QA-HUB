@@ -37,15 +37,36 @@ const GITHUB_RUN_ID = process.env.GITHUB_RUN_ID || "";
  * `invocationDetails` (relativeFile/absoluteFile) of the test or one of its
  * parent suites. Walk every known source before giving up.
  */
-function rawSpecPath(test) {
+function findCypressSpec(value, seen = new Set()) {
+  if (!value || seen.has(value)) return "";
+  if (typeof value === "string") {
+    const match = value.replace(/\\/g, "/").match(/(?:^|[\s"'])([^\s"']+\.cy\.(?:js|jsx|ts|tsx))(?=$|[\s"'])/i);
+    return match ? match[1] : "";
+  }
+  if (typeof value !== "object") return "";
+  seen.add(value);
+  for (const key of ["relativeFile", "absoluteFile", "file", "fullFile", "fileUrl"]) {
+    const found = findCypressSpec(value[key], seen);
+    if (found) return found;
+  }
+  return "";
+}
+
+function rawSpecPath(test, runner) {
   let node = test;
   while (node) {
-    const details = node.invocationDetails || {};
     const candidate =
-      details.relativeFile || details.absoluteFile || node.file || "";
+      findCypressSpec(node.invocationDetails) ||
+      findCypressSpec(node) ||
+      findCypressSpec(node.parent);
     if (candidate) return candidate;
     node = node.parent;
   }
+  const runnerSpec =
+    findCypressSpec(runner && runner.suite) ||
+    findCypressSpec(runner && runner.test) ||
+    findCypressSpec(runner);
+  if (runnerSpec) return runnerSpec;
   return (
     process.env.SPEC ||
     process.env.CYPRESS_SPEC ||
@@ -53,8 +74,8 @@ function rawSpecPath(test) {
   );
 }
 
-function specPath(test) {
-  const file = rawSpecPath(test);
+function specPath(test, runner) {
+  const file = rawSpecPath(test, runner);
   if (!file) return "spec desconhecida";
   const normalized = path.isAbsolute(file)
     ? path.relative(process.cwd(), file)
@@ -99,10 +120,10 @@ async function send(payload) {
   }
 }
 
-function base(test) {
+function base(test, runner) {
   const describe_path = describePath(test);
   return {
-    spec: specPath(test),
+    spec: specPath(test, runner),
     describe_path,
     title: test.title,
     full_title: [...describe_path, test.title].join(" > "),
@@ -116,15 +137,15 @@ class QAHubReporter {
     const track = (promise) => this.pending.push(promise);
 
     runner.on(EVENT_TEST_BEGIN, (test) => {
-      track(send({ ...base(test), status: "running" }));
+      track(send({ ...base(test, runner), status: "running" }));
     });
     runner.on(EVENT_TEST_PASS, (test) => {
-      track(send({ ...base(test), status: "passed", duration_ms: test.duration }));
+      track(send({ ...base(test, runner), status: "passed", duration_ms: test.duration }));
     });
     runner.on(EVENT_TEST_FAIL, (test, err) => {
       track(
         send({
-          ...base(test),
+          ...base(test, runner),
           status: "failed",
           duration_ms: test.duration,
           error_message: err && err.message,
@@ -133,7 +154,7 @@ class QAHubReporter {
       );
     });
     runner.on(EVENT_TEST_PENDING, (test) => {
-      track(send({ ...base(test), status: "pending" }));
+      track(send({ ...base(test, runner), status: "pending" }));
     });
 
   }
