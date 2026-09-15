@@ -52,7 +52,7 @@ export default function AutomacaoTestes() {
     Record<string, string | boolean | number>
   >({});
   const [busy, setBusy] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  
   const [filters, setFilters] = useState({
     branch: "",
     workflow: "",
