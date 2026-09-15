@@ -1,58 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 15% 8%;
-    --foreground: 220 20% 90%;
+    --background: 220 28% 5%;
+    --foreground: 216 28% 93%;
 
-    --card: 225 14% 12%;
+    --card: 220 21% 11%;
     --card-foreground: 220 20% 90%;
 
-    --popover: 225 14% 12%;
+    --popover: 220 21% 11%;
     --popover-foreground: 220 20% 90%;
 
-    --primary: 228 89% 63%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 14% 16%;
+    --secondary: 220 17% 15%;
     --secondary-foreground: 220 20% 90%;
 
-    --muted: 225 10% 20%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 220 14% 19%;
+    --muted-foreground: 217 11% 62%;
 
-    --accent: 225 14% 16%;
+    --accent: 220 17% 15%;
     --accent-foreground: 220 20% 90%;
 
     --destructive: 0 86% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 12% 18%;
-    --input: 225 12% 18%;
-    --ring: 228 89% 63%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 228 20% 6%;
+    --sidebar-background: 222 30% 4%;
     --sidebar-foreground: 220 10% 55%;
-    --sidebar-primary: 228 89% 63%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 14% 12%;
+    --sidebar-accent: 220 21% 11%;
     --sidebar-accent-foreground: 220 20% 90%;
-    --sidebar-border: 225 12% 14%;
-    --sidebar-ring: 228 89% 63%;
+    --sidebar-border: 220 15% 16%;
+    --sidebar-ring: 217 91% 60%;
 
-    --success: 145 63% 49%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 30 100% 58%;
     --warning-foreground: 0 0% 100%;
-    --info: 228 89% 63%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    font-family: 'Inter', sans-serif;
+    font-family: 'Manrope', sans-serif;
   }
 }
 
@@ -63,5 +61,10 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Sora', sans-serif;
+    letter-spacing: 0;
   }
 }
