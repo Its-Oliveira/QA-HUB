@@ -30,7 +30,7 @@ const WeeklyOpenCardsReport = ({ data }: { data: WeeklyReportData }) => {
   );
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+    <div className="min-w-0 bg-card border border-border rounded-xl p-3 sm:p-5 space-y-3">
       <div>
         <h2 className="text-base font-semibold text-foreground">
           RELATÓRIO SEMANAL QA — BUG WEB

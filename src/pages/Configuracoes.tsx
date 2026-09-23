@@ -42,9 +42,9 @@ const Configuracoes = () => {
         Configurações
       </h1>
 
-      <div className="space-y-6 max-w-lg">
+      <div className="min-w-0 space-y-6 max-w-lg">
         {/* GitHub */}
-        <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+        <div className="bg-card border border-border rounded-lg p-4 sm:p-6 space-y-4">
           <h2 className="text-sm font-semibold text-foreground">
             Integração GitHub
           </h2>
@@ -56,7 +56,7 @@ const Configuracoes = () => {
         </div>
 
         {/* Password */}
-        <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+        <div className="bg-card border border-border rounded-lg p-4 sm:p-6 space-y-4">
           <h2 className="text-sm font-semibold text-foreground">
             Alterar Senha
           </h2>
@@ -68,7 +68,7 @@ const Configuracoes = () => {
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground"
+              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-base lg:text-sm text-foreground"
             />
           </div>
           <div>
@@ -79,7 +79,7 @@ const Configuracoes = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground"
+              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-base lg:text-sm text-foreground"
             />
           </div>
           <div>
@@ -90,7 +90,7 @@ const Configuracoes = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground"
+              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-base lg:text-sm text-foreground"
             />
           </div>
           <button

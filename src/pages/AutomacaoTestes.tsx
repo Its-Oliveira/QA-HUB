@@ -50,7 +50,7 @@ const Badge = ({ status }: { status: string }) => (
   </span>
 );
 const selectClass =
-  "w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm";
+  "w-full rounded-md border border-border bg-secondary px-3 py-2 text-base lg:text-sm";
 type Catalog = {
   branches: string[];
   workflows: { id: string; name: string }[];
@@ -246,7 +246,7 @@ export default function AutomacaoTestes() {
             <Radio className={`h-3.5 w-3.5 ${connected ? "text-success" : "text-warning"}`} />
             {connected ? "Monitoramento ao vivo" : "Conectando ao monitoramento"}
           </div>
-          <h1 className="font-display text-3xl font-bold">Painel de Testes Automatizados</h1>
+           <h1 className="font-display text-2xl font-bold sm:text-3xl">Painel de Testes Automatizados</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Execuções Cypress, resultados por teste e histórico em um único painel.
           </p>
@@ -271,7 +271,7 @@ export default function AutomacaoTestes() {
             </Button>
           </p>
         ))}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+       <section className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {[
           { label: "Specs", value: totalSpecs, icon: FileCode2, tone: "text-primary" },
           { label: "Testes", value: latestResults.length, icon: Activity, tone: "text-foreground" },
@@ -291,7 +291,7 @@ export default function AutomacaoTestes() {
       </section>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
+         <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
             <div>
               <h2 className="font-display font-semibold">Árvore da última execução</h2>
@@ -305,7 +305,7 @@ export default function AutomacaoTestes() {
               {!!runningTests && <span className="text-primary">{runningTests} rodando</span>}
             </div>
           </div>
-          <div className="max-h-[720px] overflow-y-auto p-4">
+           <div className="max-h-[720px] overflow-y-auto p-2 sm:p-4">
             <TestTree
               results={latestResults}
               repository={catalog.data?.repository}
@@ -315,7 +315,7 @@ export default function AutomacaoTestes() {
           </div>
         </section>
 
-        <aside className="space-y-5">
+         <aside className="min-w-0 space-y-5">
           <section id="nova-execucao" className="rounded-lg border bg-card p-4">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-sm font-semibold">Nova execução</h2>
@@ -481,8 +481,8 @@ export default function AutomacaoTestes() {
             />
           </label>
         </div>
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="w-full text-sm">
+         <div className="max-w-full overflow-x-auto rounded-lg border bg-card">
+           <table className="min-w-[790px] w-full text-sm lg:min-w-0">
             <thead>
               <tr>
                 {[
@@ -494,7 +494,7 @@ export default function AutomacaoTestes() {
                   "Duração",
                   "Detalhes",
                 ].map((h) => (
-                  <th key={h} className="p-3 text-left text-muted-foreground">
+                   <th key={h} className={`p-3 text-left text-muted-foreground ${h === "Data/hora" ? "sticky left-0 z-10 bg-card lg:static lg:bg-transparent" : ""}`}>
                     {h}
                   </th>
                 ))}
@@ -517,7 +517,7 @@ export default function AutomacaoTestes() {
               )}
               {history.data?.runs.map((r) => (
                 <tr key={r.id} className="border-t transition-colors hover:bg-secondary/40">
-                  <td className="p-3 whitespace-nowrap">
+                   <td className="sticky left-0 z-10 bg-card p-3 whitespace-nowrap lg:static lg:bg-transparent">
                     {new Date(r.created_at).toLocaleString("pt-BR")}
                   </td>
                   <td className="p-3">{r.workflow_name || "Cypress"}</td>
@@ -547,7 +547,7 @@ export default function AutomacaoTestes() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between">
+         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button
             variant="outline"
             disabled={!page}

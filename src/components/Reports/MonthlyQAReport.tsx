@@ -113,7 +113,7 @@ const MonthlyQAReport = ({
   }));
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+     <div className="min-w-0 bg-card border border-border rounded-xl p-3 sm:p-5 space-y-3">
       {/* Cabeçalho */}
       <div>
         <h2 className="text-base font-semibold text-foreground">
@@ -128,18 +128,18 @@ const MonthlyQAReport = ({
       </div>
 
       {/* Seletor de período */}
-      <div className="flex flex-wrap items-end gap-2 bg-secondary/30 border border-border rounded-lg p-3">
-        <div className="flex flex-col gap-1">
+       <div className="flex flex-wrap items-end gap-2 bg-secondary/30 border border-border rounded-lg p-3">
+         <div className="flex w-full flex-col gap-1 sm:w-auto">
           <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Início</label>
           <input
             type="date"
             value={startDate}
             max={endDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="bg-background border border-border rounded px-2 py-1 text-xs"
+             className="w-full bg-background border border-border rounded px-2 py-1 text-xs sm:w-auto"
           />
         </div>
-        <div className="flex flex-col gap-1">
+         <div className="flex w-full flex-col gap-1 sm:w-auto">
           <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Fim</label>
           <input
             type="date"
@@ -147,7 +147,7 @@ const MonthlyQAReport = ({
             min={startDate}
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => setEndDate(e.target.value)}
-            className="bg-background border border-border rounded px-2 py-1 text-xs"
+             className="w-full bg-background border border-border rounded px-2 py-1 text-xs sm:w-auto"
           />
         </div>
         <button
@@ -229,7 +229,7 @@ const MonthlyQAReport = ({
           <p className="text-xs text-destructive">Erro: {bc.error}</p>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-2 mb-3">
+             <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 mb-3">
               <div className="bg-secondary/30 border border-border rounded p-2">
                 <p className="text-[10px] uppercase text-muted-foreground">Criados</p>
                 <p className="text-sm font-semibold text-foreground">{bc.totalCreated ?? 0}</p>
@@ -247,9 +247,9 @@ const MonthlyQAReport = ({
             </div>
 
             {/* Gráficos */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
               <div
-                className="bg-secondary/20 border border-border rounded-lg p-3"
+                 className="min-w-0 bg-secondary/20 border border-border rounded-lg p-3"
                 data-export-chart="pie"
               >
                 <p className="text-[11px] uppercase text-muted-foreground mb-1">
@@ -279,7 +279,7 @@ const MonthlyQAReport = ({
                 </div>
               </div>
               <div
-                className="bg-secondary/20 border border-border rounded-lg p-3"
+                 className="min-w-0 bg-secondary/20 border border-border rounded-lg p-3"
                 data-export-chart="bar"
               >
                 <p className="text-[11px] uppercase text-muted-foreground mb-1">
@@ -319,11 +319,11 @@ const MonthlyQAReport = ({
                 Nenhum card BUG CLIENTE criado neste período.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[11px] font-mono">
+               <div className="max-w-full overflow-x-auto">
+                 <table className="min-w-[420px] w-full text-[11px] font-mono lg:min-w-0">
                   <thead>
                     <tr className="text-left text-muted-foreground border-b border-border">
-                      <th className="py-1.5 pr-3 font-sans">Relator</th>
+                       <th className="sticky left-0 bg-card py-1.5 pr-3 font-sans lg:static lg:bg-transparent">Relator</th>
                       <th className="py-1.5 pr-3 font-sans text-right">Criados</th>
                       <th className="py-1.5 pr-3 font-sans text-right">Cancelados</th>
                       <th className="py-1.5 pr-3 font-sans text-right">% cancelamento</th>
@@ -332,7 +332,7 @@ const MonthlyQAReport = ({
                   <tbody>
                     {bc.breakdown.map((r) => (
                       <tr key={r.reporter} className="border-b border-border/50">
-                        <td className="py-1.5 pr-3 font-sans text-foreground">{r.reporter}</td>
+                         <td className="sticky left-0 bg-card py-1.5 pr-3 font-sans text-foreground lg:static lg:bg-transparent">{r.reporter}</td>
                         <td className="py-1.5 pr-3 text-right">{r.created}</td>
                         <td className="py-1.5 pr-3 text-right text-primary">{r.cancelled}</td>
                         <td className="py-1.5 pr-3 text-right text-orange-400">
@@ -452,12 +452,12 @@ function DetailTable({ rows }: { rows: Record<string, ReactNode>[] }) {
     return <p className="text-xs text-muted-foreground italic">Sem registros.</p>;
   const headers = Object.keys(rows[0]);
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-[11px]">
+     <div className="max-w-full overflow-x-auto">
+       <table className="min-w-[620px] w-full text-[11px] lg:min-w-0">
         <thead>
           <tr className="text-left text-muted-foreground border-b border-border">
             {headers.map((h) => (
-              <th key={h} className="py-1.5 pr-3 font-sans">{h}</th>
+               <th key={h} className={`py-1.5 pr-3 font-sans ${h === headers[0] ? "sticky left-0 bg-card lg:static lg:bg-transparent" : ""}`}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -465,7 +465,7 @@ function DetailTable({ rows }: { rows: Record<string, ReactNode>[] }) {
           {rows.map((r, idx) => (
             <tr key={idx} className="border-b border-border/50">
               {headers.map((h) => (
-                <td key={h} className="py-1.5 pr-3 text-foreground align-top">
+                 <td key={h} className={`py-1.5 pr-3 text-foreground align-top ${h === headers[0] ? "sticky left-0 bg-card lg:static lg:bg-transparent" : ""}`}>
                   {r[h] as ReactNode}
                 </td>
               ))}

@@ -6,7 +6,7 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
   const sep = <div className="border-t border-dashed border-border my-4" aria-hidden />;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+    <div className="min-w-0 bg-card border border-border rounded-xl p-3 sm:p-5 space-y-3">
       <div>
         <h2 className="text-base font-semibold text-foreground">
           RELATÓRIO MENSAL — CARDS CANCELADOS PELO QA
@@ -57,9 +57,9 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
             {data.ranking.map((r, idx) => (
               <li
                 key={r.reporter}
-                className="flex items-center justify-between text-xs px-3 py-1.5 rounded-md bg-secondary/30 border border-border"
+                className="flex items-center justify-between gap-2 text-xs px-3 py-1.5 rounded-md bg-secondary/30 border border-border"
               >
-                <span className="text-foreground">
+                <span className="min-w-0 break-words text-foreground">
                   <span className="text-muted-foreground mr-2">#{idx + 1}</span>
                   {r.reporter}
                 </span>
@@ -81,11 +81,11 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
             Nenhum card cancelado pelo QA neste mês.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[11px] font-mono">
+          <div className="max-w-full overflow-x-auto">
+            <table className="min-w-[620px] w-full text-[11px] font-mono lg:min-w-0">
               <thead>
                 <tr className="text-left text-muted-foreground border-b border-border">
-                  <th className="py-1.5 pr-3">Card</th>
+                  <th className="sticky left-0 bg-card py-1.5 pr-3 lg:static lg:bg-transparent">Card</th>
                   <th className="py-1.5 pr-3 font-sans">Resumo</th>
                   <th className="py-1.5 pr-3 font-sans">Relator</th>
                   <th className="py-1.5 pr-3 font-sans">Criado</th>
@@ -94,7 +94,7 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
               <tbody>
                 {data.issues.map((i) => (
                   <tr key={i.key} className="border-b border-border/50">
-                    <td className="py-1.5 pr-3 align-top">
+                    <td className="sticky left-0 bg-card py-1.5 pr-3 align-top lg:static lg:bg-transparent">
                       <a
                         href={i.url}
                         target="_blank"

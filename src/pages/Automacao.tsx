@@ -48,14 +48,14 @@ const Automacao = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 lg:flex-nowrap lg:gap-0">
         <h1 className="text-2xl font-semibold text-foreground">Automação Cypress</h1>
-        <button onClick={addEntry} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground">
+        <button onClick={addEntry} className="flex min-h-11 items-center gap-2 px-3 py-1.5 rounded-md text-xs lg:min-h-0 bg-primary text-primary-foreground">
           <Plus className="w-3 h-3" /> Nova Entrada
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total de Casos</p>
           <p className="text-2xl font-bold text-foreground">{total}</p>
@@ -76,7 +76,7 @@ const Automacao = () => {
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4 mb-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 lg:flex-nowrap lg:gap-0">
           <h2 className="text-sm font-semibold text-foreground">Commits do GitHub</h2>
           <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground">Configure PAT em Configurações</span>
         </div>
@@ -84,11 +84,11 @@ const Automacao = () => {
       </div>
 
       <h2 className="text-sm font-semibold text-foreground mb-3">Tracker de Automação</h2>
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="max-w-full bg-card border border-border rounded-lg overflow-x-auto">
+        <table className="min-w-[800px] w-full text-sm lg:min-w-0">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Funcionalidade</th>
+               <th className="sticky left-0 z-10 bg-card text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider lg:static lg:bg-transparent">Funcionalidade</th>
               <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Arquivo de Teste</th>
               <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</th>
               <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">Última Execução</th>
@@ -102,27 +102,27 @@ const Automacao = () => {
             )}
             {entries.map((entry) => (
               <tr key={entry.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-3">
-                  <input value={entry.feature || ""} onChange={(e) => updateField(entry.id, "feature", e.target.value)} className="bg-transparent text-foreground text-sm w-full focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" />
+                 <td className="sticky left-0 z-10 bg-card px-4 py-3 lg:static lg:bg-transparent">
+                  <input value={entry.feature || ""} onChange={(e) => updateField(entry.id, "feature", e.target.value)} className="bg-transparent text-foreground text-base lg:text-sm w-full focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" />
                 </td>
                 <td className="px-4 py-3">
-                  <input value={entry.test_file || ""} onChange={(e) => updateField(entry.id, "test_file", e.target.value)} className="bg-transparent text-muted-foreground text-xs font-mono w-full focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" />
+                  <input value={entry.test_file || ""} onChange={(e) => updateField(entry.id, "test_file", e.target.value)} className="bg-transparent text-muted-foreground text-base lg:text-xs font-mono w-full focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" />
                 </td>
                 <td className="px-4 py-3">
-                  <select value={entry.status} onChange={(e) => updateField(entry.id, "status", e.target.value)} className={`text-[10px] font-semibold px-2 py-1 rounded border-0 ${statusColors[entry.status as AutoStatus] || ""}`}>
+                  <select value={entry.status} onChange={(e) => updateField(entry.id, "status", e.target.value)} className={`text-base lg:text-[10px] font-semibold px-2 py-1 rounded border-0 ${statusColors[entry.status as AutoStatus] || ""}`}>
                     <option value="Automatizado">Automatizado</option>
                     <option value="Em Progresso">Em Progresso</option>
                     <option value="Pendente">Pendente</option>
                   </select>
                 </td>
                 <td className="px-4 py-3">
-                  <input type="date" value={entry.last_run_date || ""} onChange={(e) => updateField(entry.id, "last_run_date", e.target.value)} className="bg-transparent text-muted-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" />
+                  <input type="date" value={entry.last_run_date || ""} onChange={(e) => updateField(entry.id, "last_run_date", e.target.value)} className="bg-transparent text-muted-foreground text-base lg:text-xs focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" />
                 </td>
                 <td className="px-4 py-3">
-                  <input value={entry.notes || ""} onChange={(e) => updateField(entry.id, "notes", e.target.value)} className="bg-transparent text-muted-foreground text-xs w-full focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" placeholder="—" />
+                  <input value={entry.notes || ""} onChange={(e) => updateField(entry.id, "notes", e.target.value)} className="bg-transparent text-muted-foreground text-base lg:text-xs w-full focus:outline-none focus:ring-1 focus:ring-primary rounded px-1" placeholder="—" />
                 </td>
                 <td className="px-4 py-3">
-                  <button onClick={() => setDeleteId(entry.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => setDeleteId(entry.id)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </td>
               </tr>
             ))}
@@ -131,7 +131,7 @@ const Automacao = () => {
       </div>
 
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent>
+         <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto lg:max-h-none lg:w-full lg:overflow-visible">
           <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir esta entrada?</p>
           <DialogFooter>
