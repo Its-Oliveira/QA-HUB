@@ -122,26 +122,26 @@ const CardsJira = () => {
   const jiraUrl = (key: string) => `https://orcafascio.atlassian.net/browse/${key}`;
 
   const CardItem = ({ card }: { card: any }) => (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-start justify-between mb-2">
+    <div className="min-w-0 bg-card border border-border rounded-xl p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-2 lg:flex-nowrap lg:gap-0">
         <span className="inline-flex items-center">
           <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
           <IssueLinkIcon issuelinks={(card as any).issue_links} />
         </span>
-        <div className="flex items-center gap-1">
-          <button onClick={() => startEdit(card)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
+        <div className="flex flex-wrap items-center gap-1 lg:flex-nowrap">
+          <button onClick={() => startEdit(card)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3 h-3" /></button>
           {confirmDeleteId === card.id ? (
             <div className="flex items-center gap-1 ml-1">
               <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
-              <button onClick={() => handleDelete(card.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
-              <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+              <button onClick={() => handleDelete(card.id)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDeleteId(card.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3 h-3" /></button>
+            <button onClick={() => setConfirmDeleteId(card.id)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3 h-3" /></button>
           )}
         </div>
       </div>
-      <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-foreground mb-1 block cursor-pointer hover:underline">{card.title}</a>
+      <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-foreground mb-1 block break-words cursor-pointer hover:underline">{card.title}</a>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{card.description}</p>
       <div className="flex items-center justify-between">
         <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
@@ -154,35 +154,35 @@ const CardsJira = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 mb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <select
             value={filterBugType}
             onChange={(e) => setFilterBugType(e.target.value as BugType | "all")}
-            className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-base lg:text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="all">Todos os tipos</option>
             {bugTypes.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={openNew} className="flex min-h-11 items-center gap-2 px-3 py-1.5 rounded-md text-xs lg:min-h-0 bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Card
           </button>
-          <button onClick={() => syncJira(false)} disabled={syncing} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-secondary text-foreground border border-border hover:bg-accent transition-colors disabled:opacity-50">
+          <button onClick={() => syncJira(false)} disabled={syncing} className="flex min-h-11 items-center gap-2 px-3 py-1.5 rounded-md text-xs lg:min-h-0 bg-secondary text-foreground border border-border hover:bg-accent transition-colors disabled:opacity-50">
             {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} {syncing ? "Sincronizando..." : "Sincronizar com Jira"}
           </button>
-          <button onClick={() => setView("kanban")} className={`p-1.5 rounded ${view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
-          <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="w-4 h-4" /></button>
+          <button onClick={() => setView("kanban")} className={`max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded ${view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
+          <button onClick={() => setView("list")} className={`max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><List className="w-4 h-4" /></button>
         </div>
       </div>
 
 
       {view === "kanban" ? (
-        <div className="grid grid-cols-3 gap-6">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:pb-0">
           {statuses.map((status) => (
-            <div key={status}>
+            <div key={status} className="w-[min(82vw,20rem)] shrink-0 snap-start lg:w-auto lg:shrink">
               <div className="flex items-center gap-2 mb-3">
                 <StatusDot color={statusColors[status]} />
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{status}</h2>
@@ -197,23 +197,23 @@ const CardsJira = () => {
       ) : (
         <div className="space-y-2">
           {filtered.map((card) => (
-            <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+            <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
               <span className="inline-flex items-center w-16">
                 <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
                 <IssueLinkIcon issuelinks={(card as any).issue_links} />
               </span>
-              <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground flex-1 cursor-pointer hover:underline">{card.title}</a>
+              <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="min-w-0 basis-full break-words text-sm text-foreground lg:basis-auto flex-1 cursor-pointer hover:underline">{card.title}</a>
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
-              <button onClick={() => startEdit(card)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
+              <button onClick={() => startEdit(card)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
               {confirmDeleteId === card.id ? (
                 <div className="flex items-center gap-1">
                   <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
-                  <button onClick={() => handleDelete(card.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
-                  <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+                  <button onClick={() => handleDelete(card.id)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+                  <button onClick={() => setConfirmDeleteId(null)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
                 </div>
               ) : (
-                <button onClick={() => setConfirmDeleteId(card.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => setConfirmDeleteId(card.id)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
               )}
             </div>
           ))}
@@ -221,26 +221,26 @@ const CardsJira = () => {
       )}
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
-        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl max-w-md p-0 gap-0">
+        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">
           <VisuallyHidden><DialogTitle>{editingId ? "Editar Card" : "Novo Card"}</DialogTitle></VisuallyHidden>
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2d38]">
             <h2 className="text-base font-semibold text-foreground">{editingId ? "Editar Card" : "Novo Card"}</h2>
-            <button onClick={closeModal} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={closeModal} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
           <div className="px-5 py-4 flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
-              <input value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} placeholder="ID (ex: QA-101)" className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-              <input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} placeholder="Responsável" className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} placeholder="ID (ex: QA-101)" className="min-w-0 bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+              <input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} placeholder="Responsável" className="min-w-0 bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título" className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição" className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-            <div className="grid grid-cols-2 gap-3">
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as CardStatus })} className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título" className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+            <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição" className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as CardStatus })} className="min-w-0 bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
                 {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
+              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })} className="min-w-0 bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
                 <option value="LOW">Baixa</option>
                 <option value="MEDIUM">Média</option>
                 <option value="HIGH">Alta</option>

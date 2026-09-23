@@ -87,9 +87,9 @@ const Lembretes = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 lg:flex-nowrap lg:gap-0">
         <h1 className="text-2xl font-semibold text-foreground">Lembretes</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           {completedReminders.length > 0 && (
             <button
               onClick={() => setShowCompleted(!showCompleted)}
@@ -101,7 +101,7 @@ const Lembretes = () => {
               {showCompleted ? "Ocultar concluídos" : `Concluídos (${completedReminders.length})`}
             </button>
           )}
-          <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
+          <button onClick={openNew} className="flex min-h-11 items-center gap-2 px-3 py-1.5 rounded-md text-xs lg:min-h-0 bg-primary text-primary-foreground font-medium">
             <Plus className="w-3 h-3" /> Novo Lembrete
           </button>
         </div>
@@ -132,11 +132,11 @@ const Lembretes = () => {
               r.completed ? `border-l-success opacity-60` : priorityBorderColor[r.priority as Priority] || "border-l-primary"
             }`}
           >
-            <div className="flex items-start gap-3">
+             <div className="flex flex-wrap items-start gap-3 lg:flex-nowrap">
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between mb-1">
-                  <p className={`text-sm font-semibold text-foreground ${r.completed ? "line-through" : ""}`}>
+                   <p className={`min-w-0 break-words text-sm font-semibold text-foreground ${r.completed ? "line-through" : ""}`}>
                     {r.title}
                   </p>
                   <div className="flex items-center gap-1 shrink-0 ml-3">
@@ -148,12 +148,12 @@ const Lembretes = () => {
                 )}
                 {/* Metadata pills */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{r.category}</span>
+                  <span className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{r.category}</span>
                   {r.jira_card_ref && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-mono">{r.jira_card_ref}</span>
+                    <span className="max-w-full break-all text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-mono lg:max-w-none lg:break-normal">{r.jira_card_ref}</span>
                   )}
                   {(r as any).created_by && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary">
+                    <span className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary">
                       {(r as any).created_by.split("@")[0]}
                     </span>
                   )}
@@ -164,25 +164,25 @@ const Lembretes = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-1 shrink-0">
+               <div className="flex flex-wrap items-center gap-1 shrink-0 lg:flex-nowrap">
                 <button
                   onClick={() => toggleComplete(r.id, r.completed)}
-                  className={`p-1.5 rounded-md transition-colors ${r.completed ? "text-success hover:text-success/80" : "text-muted-foreground hover:text-success"}`}
+                  className={`max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md transition-colors ${r.completed ? "text-success hover:text-success/80" : "text-muted-foreground hover:text-success"}`}
                   title={r.completed ? "Desmarcar" : "Concluir"}
                 >
                   <CheckCircle className="w-4 h-4" />
                 </button>
-                <button onClick={() => startEdit(r)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors" title="Editar">
+                <button onClick={() => startEdit(r)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors" title="Editar">
                   <Pencil className="w-4 h-4" />
                 </button>
                 {confirmDeleteId === r.id ? (
                   <div className="flex items-center gap-1 ml-1">
                     <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
-                    <button onClick={() => handleDelete(r.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
-                    <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+                    <button onClick={() => handleDelete(r.id)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+                    <button onClick={() => setConfirmDeleteId(null)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
                   </div>
                 ) : (
-                  <button onClick={() => setConfirmDeleteId(r.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors" title="Excluir">
+                  <button onClick={() => setConfirmDeleteId(r.id)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors" title="Excluir">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
@@ -194,10 +194,10 @@ const Lembretes = () => {
 
       {/* Create/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
-        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl max-w-md p-0 gap-0">
+         <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2d38]">
             <h2 className="text-base font-semibold text-foreground">{editingId ? "Editar Lembrete" : "Novo Lembrete"}</h2>
-            <button onClick={closeModal} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={closeModal} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -206,26 +206,26 @@ const Lembretes = () => {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Título"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Descrição"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <div className="grid grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value as Category })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="LOW">Baixa</option>
                 <option value="MEDIUM">Média</option>
@@ -236,7 +236,7 @@ const Lembretes = () => {
               value={form.jiraCardRef}
               onChange={(e) => setForm({ ...form, jiraCardRef: e.target.value })}
               placeholder="Ref Jira (opcional)"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div className="px-5 pb-5">

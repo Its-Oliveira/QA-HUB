@@ -24,7 +24,7 @@ const ReportExportBar = ({ data }: { data: WeeklyReportData }) => {
   };
 
   const btn =
-    "inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary border border-border text-xs hover:bg-accent transition-colors";
+    "inline-flex items-center gap-2 min-h-11 px-3 py-1.5 rounded-md bg-secondary border border-border lg:min-h-0 text-xs hover:bg-accent transition-colors";
 
   return (
     <div className="flex flex-wrap items-center gap-2">

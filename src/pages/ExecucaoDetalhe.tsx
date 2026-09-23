@@ -43,11 +43,11 @@ const Badge = ({ status }: { status: string }) => (
 
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="space-y-1">
+     <div className="min-w-0 space-y-1">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <div className="text-sm">{value}</div>
+       <div className="break-words text-sm">{value}</div>
     </div>
   );
 }
@@ -108,7 +108,7 @@ export default function ExecucaoDetalhe() {
   const detailResults = useTestResults(id ?? null);
 
   return (
-    <div className="space-y-6">
+     <div className="min-w-0 space-y-6">
       <div className="space-y-3">
         <nav className="text-sm text-muted-foreground">
           <Link to="/automacao-testes" className="hover:text-foreground">
@@ -166,7 +166,7 @@ export default function ExecucaoDetalhe() {
           </section>
 
           <section className="space-y-4">
-            <div className="flex items-baseline justify-between gap-3">
+             <div className="flex flex-wrap items-baseline justify-between gap-3 lg:flex-nowrap">
               <h2 className="text-lg font-semibold">Resultados dos testes</h2>
               <span className="text-xs text-muted-foreground">
                 pasta › spec › describe › it
@@ -240,9 +240,9 @@ export default function ExecucaoDetalhe() {
             {artifacts.data?.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                 className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3 lg:flex-nowrap"
               >
-                <span className="text-sm">
+                 <span className="min-w-0 break-all text-sm">
                   {a.name} · {(a.size_in_bytes / 1024).toFixed(0)} KB
                 </span>
                 <Button

@@ -24,8 +24,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background px-4 lg:min-h-screen lg:px-0">
+      <div className="w-full min-w-0 max-w-sm">
         <div className="text-center mb-8">
           <div className="text-3xl font-bold mb-2">
             <span className="text-primary">&lt;QA/&gt;</span> <span className="text-foreground">Hub</span>
@@ -41,7 +41,7 @@ const Login = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="seu@email.com"
             />
           </div>
@@ -51,7 +51,7 @@ const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="••••••••"
             />
           </div>

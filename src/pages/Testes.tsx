@@ -82,19 +82,19 @@ const Testes = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 lg:flex-nowrap lg:gap-0">
         <h1 className="text-2xl font-semibold text-foreground">Testes Manuais</h1>
-        <button onClick={openNew} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground font-medium">
+        <button onClick={openNew} className="flex min-h-11 items-center gap-2 px-3 py-1.5 rounded-md text-xs lg:min-h-0 bg-primary text-primary-foreground font-medium">
           <Plus className="w-3 h-3" /> Novo Teste
         </button>
       </div>
 
-      <div className="flex gap-3 mb-6">
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as TestStatus | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-xs text-foreground">
+      <div className="flex flex-wrap gap-3 mb-6 lg:flex-nowrap">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as TestStatus | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-base lg:text-xs text-foreground">
           <option value="all">Todos Status</option>
           {allStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={filterEnv} onChange={(e) => setFilterEnv(e.target.value as Environment | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-xs text-foreground">
+        <select value={filterEnv} onChange={(e) => setFilterEnv(e.target.value as Environment | "all")} className="bg-secondary border border-border rounded-md px-3 py-1.5 text-base lg:text-xs text-foreground">
           <option value="all">Todos Ambientes</option>
           {allEnvs.map((e) => <option key={e} value={e}>{e}</option>)}
         </select>
@@ -119,16 +119,16 @@ const Testes = () => {
       <div className="space-y-3">
         {filtered.map((test) => (
           <div key={test.id} className="bg-card border border-border rounded-xl">
-            <div className="p-4 flex items-center gap-4 cursor-pointer" onClick={() => setExpandedId(expandedId === test.id ? null : test.id)}>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-foreground">{test.name}</h3>
-                <p className="text-xs text-muted-foreground">{test.feature_description}</p>
+            <div className="p-4 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-4 cursor-pointer" onClick={() => setExpandedId(expandedId === test.id ? null : test.id)}>
+              <div className="min-w-0 basis-full flex-1 lg:basis-auto">
+                <h3 className="break-words text-sm font-semibold text-foreground">{test.name}</h3>
+                <p className="break-words text-xs text-muted-foreground">{test.feature_description}</p>
               </div>
               <select
                 value={test.status}
                 onChange={(e) => { e.stopPropagation(); updateStatus(test.id, e.target.value as TestStatus); }}
                 onClick={(e) => e.stopPropagation()}
-                className={`text-[10px] font-semibold px-2 py-1 rounded border-0 ${statusColors[test.status as TestStatus] || ""}`}
+                className={`text-base lg:text-[10px] font-semibold px-2 py-1 rounded border-0 ${statusColors[test.status as TestStatus] || ""}`}
               >
                 {allStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -136,24 +136,24 @@ const Testes = () => {
               <p className="text-[11px] text-muted-foreground">
                 {new Date(test.created_at).toLocaleDateString("pt-BR")}
               </p>
-              <button onClick={(e) => { e.stopPropagation(); startEdit(test); }} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-4 h-4" /></button>
+              <button onClick={(e) => { e.stopPropagation(); startEdit(test); }} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-4 h-4" /></button>
               {confirmDeleteId === test.id ? (
                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                   <span className="text-[11px] text-muted-foreground">Tem certeza?</span>
-                  <button onClick={() => handleDelete(test.id)} className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
-                  <button onClick={() => setConfirmDeleteId(null)} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
+                  <button onClick={() => handleDelete(test.id)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground font-medium">Sim</button>
+                  <button onClick={() => setConfirmDeleteId(null)} className="max-lg:min-h-11 max-lg:min-w-11 text-[11px] px-2 py-0.5 rounded bg-secondary text-foreground">Não</button>
                 </div>
               ) : (
-                <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(test.id); }} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(test.id); }} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
               )}
             </div>
             {expandedId === test.id && (
               <div className="border-t border-border p-4">
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap bg-secondary rounded-lg p-3">{test.documentation || "Sem documentação."}</pre>
+                <pre className="break-words text-xs text-muted-foreground whitespace-pre-wrap bg-secondary rounded-lg p-3">{test.documentation || "Sem documentação."}</pre>
                 {(test.links as string[] || []).length > 0 && (
                   <div className="mt-3 flex gap-2 flex-wrap">
                     {(test.links as string[]).map((link, i) => (
-                      <a key={i} href={link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">{link}</a>
+                      <a key={i} href={link} target="_blank" rel="noreferrer" className="break-all text-xs text-primary hover:underline">{link}</a>
                     ))}
                   </div>
                 )}
@@ -165,10 +165,10 @@ const Testes = () => {
 
       {/* Create/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
-        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl max-w-md p-0 gap-0">
+        <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2d38]">
             <h2 className="text-base font-semibold text-foreground">{editingId ? "Editar Teste" : "Novo Teste"}</h2>
-            <button onClick={closeModal} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={closeModal} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -177,26 +177,26 @@ const Testes = () => {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Nome do teste"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <input
               value={form.featureDescription}
               onChange={(e) => setForm({ ...form, featureDescription: e.target.value })}
               placeholder="Descrição da feature"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as TestStatus })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 {allStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
               <select
                 value={form.environment}
                 onChange={(e) => setForm({ ...form, environment: e.target.value as Environment })}
-                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 {allEnvs.map((e) => <option key={e} value={e}>{e}</option>)}
               </select>
@@ -206,13 +206,13 @@ const Testes = () => {
               onChange={(e) => setForm({ ...form, documentation: e.target.value })}
               placeholder="Documentação (markdown)"
               rows={3}
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
             <input
               value={form.links}
               onChange={(e) => setForm({ ...form, links: e.target.value })}
               placeholder="Links (separados por vírgula)"
-              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full bg-secondary border border-[#2a2d38] rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div className="px-5 pb-5">

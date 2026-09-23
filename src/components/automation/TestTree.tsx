@@ -60,7 +60,7 @@ const CHUNK = 40;
 
 /** Consistent, comfortable hit area for every expand/collapse control. */
 const ROW =
-  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary";
+   "flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary lg:min-h-0";
 
 const Chevron = ({ open }: { open: boolean }) =>
   open ? (
@@ -76,7 +76,7 @@ function TestRow({ test }: { test: TestResult }) {
     <li className="border-b border-border/50 last:border-0">
       <div className="flex min-h-9 items-start gap-2 px-2 py-2 text-sm hover:bg-secondary/40">
         <StatusIcon status={test.status} />
-        <span className="flex-1 break-words">
+         <span className="min-w-0 flex-1 break-words">
           {test.title}
           {test.attempts > 1 && (
             <span className="ml-2 text-xs text-muted-foreground">
@@ -134,7 +134,7 @@ function TestList({ tests }: { tests: TestResult[] }) {
   const [limit, setLimit] = useState(CHUNK);
   return (
     <>
-      <ul className="ml-2 border-l border-border pl-4">
+       <ul className="ml-2 border-l border-border pl-2 sm:pl-4">
         {tests.slice(0, limit).map((test) => (
           <TestRow key={test.id} test={test} />
         ))}
@@ -169,13 +169,13 @@ function Branch({
       <button className={ROW} onClick={() => setOpen((o) => !o)}>
         <Chevron open={open} />
         <StatusIcon status={status} />
-        <span className="flex-1 break-words text-sm font-medium">{node.title}</span>
+         <span className="min-w-0 flex-1 break-words text-sm font-medium">{node.title}</span>
         <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
           {countTests(node)}
         </span>
       </button>
       {open && (
-        <div className="ml-4 border-l border-border pl-4">
+         <div className="ml-2 border-l border-border pl-2 sm:ml-4 sm:pl-4">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
@@ -197,13 +197,13 @@ function Spec({ node, link }: { node: SpecNode; link: LinkInfo }) {
         <Chevron open={open} />
         <StatusIcon status={status} />
         <FileCode2 className="h-4 w-4 shrink-0 text-primary" />
-        <span className="flex-1 break-all font-mono text-sm">{node.fileName}</span>
+         <span className="min-w-0 flex-1 break-all font-mono text-sm">{node.fileName}</span>
         <span className="shrink-0 text-xs text-muted-foreground">
           {countTests(node)} testes
         </span>
       </button>
       {open && (
-        <div className="border-t bg-background/30 px-3 py-2">
+         <div className="border-t bg-background/30 px-1 py-2 sm:px-3">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
@@ -244,7 +244,7 @@ function Folder({
           <FolderIcon className="h-5 w-5 shrink-0 text-primary" />
         )}
         <span
-          className={`flex-1 break-all ${
+           className={`min-w-0 flex-1 break-all ${
             depth === 0
               ? "font-display text-sm font-semibold"
               : "text-sm font-semibold"
@@ -257,7 +257,7 @@ function Folder({
         </span>
       </button>
       {open && (
-        <div className="ml-4 mt-2 space-y-3 border-l border-t border-border pt-3 pl-4">
+         <div className="ml-2 mt-2 space-y-3 border-l border-t border-border pt-3 pl-2 sm:ml-4 sm:pl-4">
           {folder.folders.map((child) => (
             <Folder key={child.key} folder={child} link={link} depth={depth + 1} />
           ))}

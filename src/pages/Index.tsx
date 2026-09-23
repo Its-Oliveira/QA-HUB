@@ -54,9 +54,9 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-foreground mb-6">Olá, {displayName}</h1>
+      <h1 className="text-2xl font-semibold text-foreground mb-6 break-words">Olá, {displayName}</h1>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((s) => (
           <div key={s.label} className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">{s.label}</p>
@@ -65,7 +65,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-8">
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Cards em Revisão</h2>
           {cardsInReview.length === 0 ? (
