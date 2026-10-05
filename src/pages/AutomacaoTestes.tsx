@@ -247,7 +247,6 @@ export default function AutomacaoTestes() {
               <span className={`absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping ${connected ? "bg-success" : "bg-warning"}`} />
               <span className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`} />
             </span>
-            <Radio className="sr-only" aria-hidden />
             {connected ? "Monitoramento ao vivo" : "Conectando ao monitoramento"}
           </div>
            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Painel de Testes Automatizados</h1>
@@ -322,7 +321,7 @@ export default function AutomacaoTestes() {
         </section>
 
          <aside className="min-w-0 space-y-5">
-          <section id="nova-execucao" className="rounded-lg border bg-card p-4">
+          <section id="nova-execucao" className="rounded-xl border border-border/60 bg-card p-4">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-sm font-semibold">Nova execução</h2>
               <Play className="h-4 w-4 text-primary" />
@@ -333,13 +332,13 @@ export default function AutomacaoTestes() {
               <p className="text-sm text-muted-foreground">Nenhum workflow ativo encontrado.</p>
             ) : (
               <div className="space-y-3">
-                <label className="block text-xs text-muted-foreground">
+                <label className="block text-xs font-medium text-foreground/80">
                   Branch
                   <select className={`${selectClass} mt-1`} value={branch} onChange={(e) => setBranch(e.target.value)}>
                     {catalog.data?.branches.map((b) => <option key={b}>{b}</option>)}
                   </select>
                 </label>
-                <label className="block text-xs text-muted-foreground">
+                <label className="block text-xs font-medium text-foreground/80">
                   Workflow
                   <select className={`${selectClass} mt-1`} value={workflow} onChange={(e) => setWorkflow(e.target.value)}>
                     {catalog.data?.workflows.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -365,7 +364,7 @@ export default function AutomacaoTestes() {
               </div>
             )}
             {duplicate && <p className="mt-3 text-xs text-warning">Já existe uma execução ativa para esta combinação.</p>}
-            <Button className="mt-4 w-full" disabled={busy || duplicate || !definition.data || definition.isFetching || definition.isError || Object.entries(definition.data?.inputs || {}).some(([key, spec]) => spec.required && (inputs[key] === "" || inputs[key] == null))} onClick={dispatch}>
+            <Button className="mt-4 h-11 w-full font-semibold shadow-sm transition-all duration-150 hover:brightness-110 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card" disabled={busy || duplicate || !definition.data || definition.isFetching || definition.isError || Object.entries(definition.data?.inputs || {}).some(([key, spec]) => spec.required && (inputs[key] === "" || inputs[key] == null))} onClick={dispatch}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               Rodar testes
             </Button>
@@ -373,7 +372,7 @@ export default function AutomacaoTestes() {
 
           <LatestRunCard run={latest.data} repository={catalog.data?.repository} onOpen={openRun} />
 
-          <section className="rounded-lg border bg-card p-4">
+          <section className="rounded-xl border border-border/60 bg-card p-4">
             <h2 className="mb-3 font-display text-sm font-semibold">Execuções em andamento</h2>
             {!active.data?.length && <p className="text-xs text-muted-foreground">Nenhuma execução ativa.</p>}
             <div className="space-y-2">
@@ -389,7 +388,7 @@ export default function AutomacaoTestes() {
             </div>
           </section>
 
-          <section className="rounded-lg border bg-card p-4">
+          <section className="rounded-xl border border-border/60 bg-card p-4">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-sm font-semibold">Execuções recentes</h2>
               <span className="text-xs text-muted-foreground">{recentRuns.length} registros</span>
@@ -487,7 +486,7 @@ export default function AutomacaoTestes() {
             />
           </label>
         </div>
-         <div className="max-w-full overflow-x-auto rounded-lg border bg-card">
+         <div className="scrollbar-subtle max-w-full overflow-x-auto rounded-xl border border-border/60 bg-card">
            <table className="min-w-[790px] w-full text-sm lg:min-w-0">
             <thead>
               <tr>
