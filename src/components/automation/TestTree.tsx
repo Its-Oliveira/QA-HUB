@@ -16,7 +16,6 @@ import { safeUrl } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
   CircleDashed,
   FileCode2,
@@ -60,21 +59,20 @@ const CHUNK = 40;
 
 /** Consistent, comfortable hit area for every expand/collapse control. */
 const ROW =
-   "flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary lg:min-h-0";
+   "flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors duration-150 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:min-h-10";
 
-const Chevron = ({ open }: { open: boolean }) =>
-  open ? (
-    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-  ) : (
-    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-  );
+const Chevron = ({ open }: { open: boolean }) => (
+  <ChevronRight
+    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+  />
+);
 
 function TestRow({ test }: { test: TestResult }) {
   const [open, setOpen] = useState(false);
   const failed = test.status === "failed";
   return (
-    <li className="border-b border-border/50 last:border-0">
-      <div className="flex min-h-9 items-start gap-2 px-2 py-2 text-sm hover:bg-secondary/40">
+    <li className={failed ? "border-l-2 border-destructive bg-destructive/5" : "border-l-2 border-transparent"}>
+      <div className="flex min-h-9 items-start gap-2 rounded-r-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-secondary/40">
         <StatusIcon status={test.status} />
          <span className="min-w-0 flex-1 break-words">
           {test.title}
@@ -134,7 +132,7 @@ function TestList({ tests }: { tests: TestResult[] }) {
   const [limit, setLimit] = useState(CHUNK);
   return (
     <>
-       <ul className="ml-2 border-l border-border pl-2 sm:pl-4">
+       <ul className="ml-2 border-l border-border/50 pl-2 sm:pl-3">
         {tests.slice(0, limit).map((test) => (
           <TestRow key={test.id} test={test} />
         ))}
@@ -170,12 +168,12 @@ function Branch({
         <Chevron open={open} />
         <StatusIcon status={status} />
          <span className="min-w-0 flex-1 break-words text-sm font-medium">{node.title}</span>
-        <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
           {countTests(node)}
         </span>
       </button>
       {open && (
-         <div className="ml-2 border-l border-border pl-2 sm:ml-4 sm:pl-4">
+         <div className="ml-2 border-l border-border/50 pl-2 sm:ml-4 sm:pl-3">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
@@ -192,18 +190,18 @@ function Spec({ node, link }: { node: SpecNode; link: LinkInfo }) {
   const status = nodeStatus(node);
   const [open, setOpen] = useState(status === "failed" || status === "running");
   return (
-    <div className="overflow-hidden rounded-md border bg-background/40">
+    <div className={`overflow-hidden rounded-lg border bg-background/40 ${status === "failed" ? "border-destructive/30" : "border-border/50"}`}>
       <button className={`${ROW} px-3 py-3`} onClick={() => setOpen((o) => !o)}>
         <Chevron open={open} />
         <StatusIcon status={status} />
         <FileCode2 className="h-4 w-4 shrink-0 text-primary" />
-         <span className="min-w-0 flex-1 break-all font-mono text-sm">{node.fileName}</span>
-        <span className="shrink-0 text-xs text-muted-foreground">
+         <span className="min-w-0 flex-1 break-all font-mono text-[13px]">{node.fileName}</span>
+        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
           {countTests(node)} testes
         </span>
       </button>
       {open && (
-         <div className="border-t bg-background/30 px-1 py-2 sm:px-3">
+         <div className="border-t border-border/50 bg-background/30 px-1 py-2 sm:px-3">
           <ul>
             {node.children.map((child) => (
               <Branch key={child.key} node={child} link={link} defaultOpen={false} />
@@ -231,8 +229,8 @@ function Folder({
     <div
       className={
         depth === 0
-          ? "rounded-lg border bg-secondary/30 p-2"
-          : "rounded-md border bg-background/40 p-2"
+          ? "rounded-xl border border-border/60 bg-secondary/20 p-2"
+          : "rounded-lg border border-border/50 bg-background/30 p-2"
       }
     >
       <button className={`${ROW} px-3`} onClick={() => setOpen((o) => !o)}>
@@ -252,12 +250,12 @@ function Folder({
         >
           {folder.name}
         </span>
-        <span className="shrink-0 text-xs text-muted-foreground">
+        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
           {countFolderTests(folder)} testes
         </span>
       </button>
       {open && (
-         <div className="ml-2 mt-2 space-y-3 border-l border-t border-border pt-3 pl-2 sm:ml-4 sm:pl-4">
+         <div className="ml-2 mt-2 space-y-3 border-l border-border/50 pt-1 pl-2 sm:ml-4 sm:pl-4">
           {folder.folders.map((child) => (
             <Folder key={child.key} folder={child} link={link} depth={depth + 1} />
           ))}
