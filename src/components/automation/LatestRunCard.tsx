@@ -22,39 +22,68 @@ export default function LatestRunCard({
   const running = rows.filter((r) => r.status === "running");
   const passed = rows.filter((r) => r.status === "passed").length;
 
+  const meta = [
+    run.workflow_name || "Cypress",
+    run.branch,
+    new Date(run.created_at).toLocaleString("pt-BR"),
+    duration(run),
+  ];
+
   return (
-    <section className="max-h-[440px] space-y-3 overflow-y-auto rounded-lg border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <section className="scrollbar-subtle max-h-[440px] space-y-4 overflow-y-auto rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="font-display text-sm font-semibold">
             Última execução {live && <span className="text-primary">· ao vivo</span>}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {run.workflow_name || "Cypress"} · {run.branch} ·{" "}
-            {new Date(run.created_at).toLocaleString("pt-BR")} · {duration(run)}
-          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {meta.map((item, i) => (
+              <span
+                key={i}
+                className="rounded-md bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
-        <Button variant="outline" size="sm" className="h-8" onClick={() => onOpen(run.id)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 border-border/70 bg-transparent transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => onOpen(run.id)}
+        >
           Ver detalhes
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-y py-3 text-xs">
-        <span className="text-success">{passed} passaram</span>
-        <span className="text-destructive">{failed.length} falharam</span>
+      <div className="grid grid-cols-2 gap-2 rounded-lg bg-secondary/40 p-3 text-xs">
+        <span className="flex items-center gap-2">
+          <i className="h-2 w-2 rounded-full bg-success" />
+          <b className="font-display text-base tabular-nums text-success">{passed}</b>
+          <span className="text-muted-foreground">passaram</span>
+        </span>
+        <span className="flex items-center gap-2">
+          <i className="h-2 w-2 rounded-full bg-destructive" />
+          <b className="font-display text-base tabular-nums text-destructive">{failed.length}</b>
+          <span className="text-muted-foreground">falharam</span>
+        </span>
         {!!running.length && (
-          <span className="text-primary">{running.length} rodando</span>
+          <span className="flex items-center gap-2 text-primary">
+            <i className="h-2 w-2 rounded-full bg-primary" />
+            <span className="tabular-nums">{running.length} rodando</span>
+          </span>
         )}
-        <span className="text-muted-foreground">{rows.length} testes</span>
+        <span className="tabular-nums text-muted-foreground">{rows.length} testes</span>
       </div>
 
       {live && !!running.length && (
-        <div className="space-y-1 border-l-2 border-primary pl-3">
-          <p className="text-xs uppercase text-muted-foreground">Executando agora</p>
+        <div className="space-y-1 border-l-2 border-primary/70 pl-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Executando agora</p>
           {running.slice(0, 5).map((test) => (
             <div key={test.id} className="flex items-center gap-2 text-sm">
               <StatusIcon status="running" />
-              <span className="font-mono text-xs text-muted-foreground">
+              <span className="truncate font-mono text-xs text-muted-foreground" title={test.spec}>
                 {test.spec}
               </span>
               <span className="break-words">
@@ -66,22 +95,28 @@ export default function LatestRunCard({
       )}
 
       {!!failed.length && (
-        <div className="space-y-1 border-l-2 border-destructive pl-3">
-          <p className="text-xs uppercase text-muted-foreground">Testes que falharam</p>
-          {failed.slice(0, 10).map((test) => (
-            <div key={test.id} className="flex items-start gap-2 text-sm">
-              <StatusIcon status="failed" />
-              <span className="flex-1 break-words">
-                <span className="font-mono text-xs text-muted-foreground">
-                  {test.spec}
-                </span>{" "}
-                {[...test.describe_path, test.title].join(" › ")}
-              </span>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {formatDuration(test.duration_ms)}
-              </span>
-            </div>
-          ))}
+        <div className="border-l-2 border-destructive/70 pl-3">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Testes que falharam <span className="tabular-nums text-destructive">({failed.length})</span>
+          </p>
+          <div className="divide-y divide-border/50">
+            {failed.slice(0, 10).map((test) => (
+              <div key={test.id} className="flex items-start gap-2 py-2 text-sm">
+                <StatusIcon status="failed" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-mono text-[11px] text-muted-foreground" title={test.spec}>
+                    {test.spec}
+                  </span>{" "}
+                  <span className="line-clamp-2 break-words" title={[...test.describe_path, test.title].join(" › ")}>
+                    {[...test.describe_path, test.title].join(" › ")}
+                  </span>
+                </span>
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                  {formatDuration(test.duration_ms)}
+                </span>
+              </div>
+            ))}
+          </div>
           {failed.length > 10 && (
             <p className="text-xs text-muted-foreground">
               e mais {failed.length - 10} falhas — abra os detalhes.

@@ -68,3 +68,23 @@
     letter-spacing: 0;
   }
 }
+
+@layer utilities {
+  /* Scoped thin dark scrollbar — apply only where needed. */
+  .scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-subtle::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.45);
+    background-clip: content-box;
+  }
+}
