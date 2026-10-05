@@ -50,7 +50,7 @@ const Badge = ({ status }: { status: string }) => (
   </span>
 );
 const selectClass =
-  "w-full rounded-md border border-border bg-secondary px-3 py-2 text-base lg:text-sm";
+  "min-h-10 w-full rounded-lg border border-border/70 bg-secondary/60 px-3 py-2 text-base text-foreground transition-colors duration-150 hover:border-muted-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:text-sm";
 type Catalog = {
   branches: string[];
   workflows: { id: string; name: string }[];
@@ -240,18 +240,22 @@ export default function AutomacaoTestes() {
   const recentRuns = (history.data?.runs || []).slice(0, 7).reverse();
   return (
     <div className="space-y-5 pb-8">
-      <header className="flex flex-col gap-3 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-border/60 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-            <Radio className={`h-3.5 w-3.5 ${connected ? "text-success" : "text-warning"}`} />
+          <div className={`mb-3 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${connected ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"}`}>
+            <span className="relative flex h-2 w-2">
+              <span className={`absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping ${connected ? "bg-success" : "bg-warning"}`} />
+              <span className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`} />
+            </span>
+            <Radio className="sr-only" aria-hidden />
             {connected ? "Monitoramento ao vivo" : "Conectando ao monitoramento"}
           </div>
-           <h1 className="font-display text-2xl font-bold sm:text-3xl">Painel de Testes Automatizados</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Painel de Testes Automatizados</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             Execuções Cypress, resultados por teste e histórico em um único painel.
           </p>
         </div>
-        <Button onClick={() => document.getElementById("nova-execucao")?.scrollIntoView({ behavior: "smooth" })}>
+        <Button className="h-10 shadow-sm transition-all duration-150 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => document.getElementById("nova-execucao")?.scrollIntoView({ behavior: "smooth" })}>
           <Play className="h-4 w-4" />
           Nova execução
         </Button>
@@ -273,39 +277,41 @@ export default function AutomacaoTestes() {
         ))}
        <section className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {[
-          { label: "Specs", value: totalSpecs, icon: FileCode2, tone: "text-primary" },
-          { label: "Testes", value: latestResults.length, icon: Activity, tone: "text-foreground" },
-          { label: "Passaram", value: passedTests, icon: CheckCircle2, tone: "text-success" },
-          { label: "Falharam", value: failedTests, icon: XCircle, tone: "text-destructive" },
-          { label: "Taxa de sucesso", value: `${successRate}%`, icon: BarChart3, tone: "text-success" },
-          { label: "Duração", value: latest.data ? duration(latest.data) : "—", icon: Clock3, tone: "text-primary" },
+          { label: "Specs", value: totalSpecs, icon: FileCode2, tone: "text-primary", chip: "bg-primary/10", accent: "", num: "text-foreground" },
+          { label: "Testes", value: latestResults.length, icon: Activity, tone: "text-foreground", chip: "bg-secondary", accent: "", num: "text-foreground" },
+          { label: "Passaram", value: passedTests, icon: CheckCircle2, tone: "text-success", chip: "bg-success/10", accent: "before:bg-success", num: "text-success" },
+          { label: "Falharam", value: failedTests, icon: XCircle, tone: "text-destructive", chip: "bg-destructive/10", accent: "before:bg-destructive", num: "text-destructive" },
+          { label: "Taxa de sucesso", value: `${successRate}%`, icon: BarChart3, tone: "text-success", chip: "bg-success/10", accent: "before:bg-success", num: "text-success" },
+          { label: "Duração", value: latest.data ? duration(latest.data) : "—", icon: Clock3, tone: "text-primary", chip: "bg-primary/10", accent: "before:bg-primary", num: "text-primary" },
         ].map((metric) => (
-          <article key={metric.label} className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
+          <article key={metric.label} className={`relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 transition-colors duration-150 hover:border-border ${metric.accent ? `before:absolute before:inset-x-0 before:top-0 before:h-0.5 ${metric.accent}` : ""}`}>
+            <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-muted-foreground">{metric.label}</span>
-              <metric.icon className={`h-4 w-4 ${metric.tone}`} />
+              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${metric.chip}`}>
+                <metric.icon className={`h-4 w-4 ${metric.tone}`} />
+              </span>
             </div>
-            <p className={`mt-2 font-display text-2xl font-bold ${metric.tone}`}>{metric.value}</p>
+            <p className={`mt-3 font-display text-2xl font-bold tabular-nums ${metric.num}`}>{metric.value}</p>
           </article>
         ))}
       </section>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-         <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+         <section className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
             <div>
               <h2 className="font-display font-semibold">Árvore da última execução</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 Pastas, specs, describes e testes individuais
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-success">{passedTests} passaram</span>
-              <span className="text-destructive">{failedTests} falharam</span>
-              {!!runningTests && <span className="text-primary">{runningTests} rodando</span>}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-medium tabular-nums">
+              <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">{passedTests} passaram</span>
+              <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive">{failedTests} falharam</span>
+              {!!runningTests && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">{runningTests} rodando</span>}
             </div>
           </div>
-           <div className="max-h-[720px] overflow-y-auto p-2 sm:p-4">
+           <div className="scrollbar-subtle max-h-[720px] overflow-y-auto p-2 sm:p-4">
             <TestTree
               results={latestResults}
               repository={catalog.data?.repository}
