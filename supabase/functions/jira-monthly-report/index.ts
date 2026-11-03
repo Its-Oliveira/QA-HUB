@@ -1,3 +1,4 @@
+import { requireUser } from "../_shared/auth.ts";
 // Edge: Relatório Mensal de QA
 // Isolado. NÃO altera os outros edges.
 const corsHeaders = {
@@ -126,6 +127,8 @@ async function fetchBugClienteCreated(
 // ---------- Handler ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const unauthorized = await requireUser(req, corsHeaders);
+  if (unauthorized) return unauthorized;
   try {
     const email = Deno.env.get("JIRA_EMAIL");
     const token = Deno.env.get("JIRA_API_TOKEN");

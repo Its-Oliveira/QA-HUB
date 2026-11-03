@@ -1,3 +1,4 @@
+import { requireUser } from "../_shared/auth.ts";
 // Edge function: busca cards do Jira cancelados pelo QA no mês atual.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -94,6 +95,8 @@ async function fetchTotalMonth(auth: string): Promise<number> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const unauthorized = await requireUser(req, corsHeaders);
+  if (unauthorized) return unauthorized;
   try {
     const email = Deno.env.get("JIRA_EMAIL");
     const token = Deno.env.get("JIRA_API_TOKEN");

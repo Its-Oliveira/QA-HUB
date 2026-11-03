@@ -1,5 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { safeEqual } from "../_shared/auth.ts";
 
 // Receives granular Cypress/Mocha results for a test run.
 //
@@ -193,7 +194,7 @@ Deno.serve(async (req) => {
   try {
     const secret = Deno.env.get("QAHUB_EVENTS_SECRET");
     const provided = req.headers.get("x-qahub-secret");
-    if (!secret || provided !== secret) return json({ error: "Unauthorized" }, 401);
+    if (!secret || !safeEqual(provided, secret)) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json();
     const correlationId = body?.correlation_id as string | undefined;

@@ -18,6 +18,16 @@ jobs:
         with:
           node-version: 20
 
+      - name: Verificar secrets do build
+        env:
+          SB_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SB_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SB_URL" ] || [ -z "$SB_KEY" ]; then
+            echo "::error::Configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY em Settings > Secrets and variables > Actions (o .env não é mais versionado)."
+            exit 1
+          fi
+
       - run: npm install
 
       - run: npm run build

@@ -1,5 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { safeEqual } from "../_shared/auth.ts";
 
 // Webhook called by the external GitHub Actions Cypress workflow to update
 // a `test_runs` row identified by correlation_id.
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
   try {
     const secret = Deno.env.get("TEST_RUN_WEBHOOK_SECRET");
     const provided = req.headers.get("x-webhook-secret");
-    if (!secret || provided !== secret) {
+    if (!secret || !safeEqual(provided, secret)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

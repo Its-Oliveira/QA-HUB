@@ -1,3 +1,4 @@
+import { requireUser } from "../_shared/auth.ts";
 // Edge function: busca todos os cards abertos do Jira para o relatório semanal.
 // Reutiliza as credenciais (JIRA_EMAIL / JIRA_API_TOKEN) da integração existente.
 
@@ -53,6 +54,8 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const unauthorized = await requireUser(req, corsHeaders);
+  if (unauthorized) return unauthorized;
   try {
     const email = Deno.env.get("JIRA_EMAIL");
     const token = Deno.env.get("JIRA_API_TOKEN");
