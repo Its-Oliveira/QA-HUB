@@ -5,6 +5,7 @@ import StatusDot from "@/components/StatusDot";
 import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, Filter } from "lucide-react";
 import { IssueLinkIcon } from "@/components/jira/IssueLinkIcon";
 import CardRewriteSheet from "@/components/jira/CardRewriteSheet";
+import JiraCardDetailsDialog from "@/components/jira/JiraCardDetailsDialog";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ const CardsJira = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<Tables<"jira_cards"> | null>(null);
+  const [rewriteCard, setRewriteCard] = useState<Tables<"jira_cards"> | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState(false);
@@ -124,17 +126,17 @@ const CardsJira = () => {
 
   const jiraUrl = (key: string) => `https://orcafascio.atlassian.net/browse/${key}`;
 
-  // Abre o painel do card, exceto quando o clique foi num link ou botão do próprio card.
+  // Mantém ações de edição/exclusão e links de vínculos independentes.
   const openDetails = (card: Tables<"jira_cards">) => (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("a, button")) return;
     setOpenCard(card);
   };
 
   const CardItem = ({ card }: { card: any }) => (
-    <div onClick={openDetails(card)} className="min-w-0 bg-card border border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-colors">
+    <div onClick={openDetails(card)} tabIndex={0} aria-label={`Ver detalhes de ${card.key}`} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setOpenCard(card); } }} className="min-w-0 bg-card border border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-2 lg:flex-nowrap lg:gap-0">
         <span className="inline-flex items-center">
-          <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
+          <span className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</span>
           <IssueLinkIcon issuelinks={(card as any).issue_links} />
         </span>
         <div className="flex flex-wrap items-center gap-1 lg:flex-nowrap">
@@ -150,7 +152,7 @@ const CardsJira = () => {
           )}
         </div>
       </div>
-      <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-foreground mb-1 block break-words cursor-pointer hover:underline">{card.title}</a>
+      <span className="text-sm font-semibold text-foreground mb-1 block break-words cursor-pointer hover:underline">{card.title}</span>
       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{card.description}</p>
       <div className="flex items-center justify-between">
         <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
@@ -206,13 +208,13 @@ const CardsJira = () => {
       ) : (
         <div className="space-y-2">
           {filtered.map((card) => (
-            <div key={card.id} onClick={openDetails(card)} className="cursor-pointer hover:border-primary/50 transition-colors bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-4">
+            <div key={card.id} onClick={openDetails(card)} tabIndex={0} aria-label={`Ver detalhes de ${card.key}`} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setOpenCard(card); } }} className="cursor-pointer hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
               <span className="inline-flex items-center w-16">
-                <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
+                <span className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</span>
                 <IssueLinkIcon issuelinks={(card as any).issue_links} />
               </span>
-              <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="min-w-0 basis-full break-words text-sm text-foreground lg:basis-auto flex-1 cursor-pointer hover:underline">{card.title}</a>
+              <span className="min-w-0 basis-full break-words text-sm text-foreground lg:basis-auto flex-1 cursor-pointer hover:underline">{card.title}</span>
               <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] text-foreground font-medium">{card.assignee_avatar}</div>
               <button onClick={() => startEdit(card)} className="max-lg:flex max-lg:h-11 max-lg:w-11 max-lg:items-center max-lg:justify-center text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
               {confirmDeleteId === card.id ? (
@@ -229,7 +231,8 @@ const CardsJira = () => {
         </div>
       )}
 
-      <CardRewriteSheet card={openCard} onClose={() => setOpenCard(null)} />
+      <JiraCardDetailsDialog card={openCard} onClose={() => setOpenCard(null)} onRewrite={card => { setOpenCard(null); setRewriteCard(card); }} />
+      <CardRewriteSheet card={rewriteCard} onClose={() => setRewriteCard(null)} />
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { ExternalLink, Loader2, RefreshCw, Sparkles, AlertCircle } from "lucide-react";
+import { ExternalLink, Loader2, RefreshCw, Sparkles, AlertCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { jiraPriority, type JiraIssueDetails } from "@/lib/jiraDetails";
 import JiraDescription from "./JiraDescription";
@@ -42,8 +42,9 @@ export default function JiraCardDetailsDialog({ card, onClose, onRewrite }: {
   const priority = jiraPriority(data?.priority);
 
   return <Dialog open={!!card} onOpenChange={open => { if (!open) onClose(); }}>
-    <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-1rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-lg bg-card p-0 [&>button]:h-11 [&>button]:w-11 [&>button]:right-2 [&>button]:top-2 [&>button>span]:hidden" aria-describedby="jira-details-description">
+    <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-1rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-lg bg-card p-0 [&>button]:hidden" aria-describedby="jira-details-description">
       <header className="shrink-0 border-b border-border px-4 py-5 pr-16 sm:px-6 sm:pr-16">
+        <DialogClose asChild><Button variant="ghost" size="icon" aria-label="Fechar detalhes" className="absolute right-2 top-2 h-11 w-11"><X /></Button></DialogClose>
         <p className="mb-2 text-xs font-mono font-semibold text-primary">{card?.key}</p>
         <DialogTitle className="break-words text-base leading-6 tracking-normal sm:text-lg">{data?.summary || card?.title}</DialogTitle>
         <DialogDescription id="jira-details-description" className="sr-only">Detalhes do bug</DialogDescription>

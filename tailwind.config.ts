@@ -16,6 +16,7 @@ export default {
         display: ["Sora", "sans-serif"],
       },
       colors: {
+        "jira-medium": "hsl(var(--jira-medium))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
