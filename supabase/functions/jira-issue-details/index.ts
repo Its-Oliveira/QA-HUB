@@ -1,10 +1,11 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { requireUser } from '../_shared/auth.ts';
+import { discoverDetailFields, selectDescription } from './fields.ts';
 
 const Input = z.object({ issueKey: z.string().regex(/^BUG-[1-9]\d*$/, 'Chave de bug inválida') });
 const JIRA_URL = 'https://orcafascio.atlassian.net/rest/api/3';
-let moduleFields: { ids: string[]; expires: number } | null = null;
+let detailFields: { moduleIds: string[]; descriptionIds: string[]; expires: number } | null = null;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 function moduleNames(value: unknown): string[] {
@@ -29,13 +30,18 @@ Deno.serve(async req => {
     const token = Deno.env.get('JIRA_API_TOKEN');
     if (!email || !token) return json({ error: 'Credenciais do Jira não configuradas.' }, 503);
     const headers = { Authorization: `Basic ${btoa(`${email}:${token}`)}`, Accept: 'application/json' };
-    // Discover only explicitly named module fields; cache metadata, never credentials or issue content.
-    if (!moduleFields || moduleFields.expires < Date.now()) {
+    // Cache field metadata, never credentials or issue content.
+    if (!detailFields || detailFields.expires < Date.now()) {
       const fieldsResponse = await fetch(`${JIRA_URL}/field`, { headers });
-      const fields = fieldsResponse.ok ? await fieldsResponse.json() : [];
-      moduleFields = { ids: Array.isArray(fields) ? fields.filter((f: { id?: string; name?: string }) => f.id?.startsWith('customfield_') && /^(módulo|modulo|module)(\s.*)?$/i.test(f.name || '')).map((f: { id: string }) => f.id) : [], expires: Date.now() + 300_000 };
+      if (!fieldsResponse.ok) {
+        const details = await fieldsResponse.text();
+        console.error(`Jira field request failed [${fieldsResponse.status}]: ${details}`);
+        return json({ error: 'Não foi possível identificar os campos do Jira.', status: fieldsResponse.status, details }, fieldsResponse.status);
+      }
+      const fields = await fieldsResponse.json();
+      detailFields = { ...discoverDetailFields(Array.isArray(fields) ? fields : []), expires: Date.now() + 300_000 };
     }
-    const fields = ['summary', 'components', 'priority', 'description', ...moduleFields.ids];
+    const fields = ['summary', 'components', 'priority', 'description', ...detailFields.moduleIds, ...detailFields.descriptionIds];
     const response = await fetch(`${JIRA_URL}/issue/${encodeURIComponent(parsed.data.issueKey)}?fields=${fields.join(',')}`, { headers });
     if (!response.ok) {
       const details = await response.text();
@@ -45,8 +51,8 @@ Deno.serve(async req => {
     const issue = await response.json();
     const data = issue.fields ?? {};
     const components = moduleNames(data.components);
-    const modules = components.length ? components : moduleFields.ids.flatMap(id => moduleNames(data[id]));
-    return json({ key: issue.key, summary: data.summary || issue.key, modules: [...new Set(modules)], priority: data.priority?.name ?? null, description: data.description ?? null });
+    const modules = components.length ? components : detailFields.moduleIds.flatMap(id => moduleNames(data[id]));
+    return json({ key: issue.key, summary: data.summary || issue.key, modules: [...new Set(modules)], priority: data.priority?.name ?? null, description: selectDescription(data, detailFields.descriptionIds) });
   } catch (error) {
     console.error('Jira issue details failed:', error instanceof Error ? error.message : 'Unknown error');
     return json({ error: 'Não foi possível carregar os detalhes. Tente novamente.' }, 500);
