@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatusDot from "@/components/StatusDot";
 import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, Filter } from "lucide-react";
 import { IssueLinkIcon } from "@/components/jira/IssueLinkIcon";
-import CardRewriteSheet from "@/components/jira/CardRewriteSheet";
 import JiraCardDetailsDialog from "@/components/jira/JiraCardDetailsDialog";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -46,7 +45,6 @@ const CardsJira = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<Tables<"jira_cards"> | null>(null);
-  const [rewriteCard, setRewriteCard] = useState<Tables<"jira_cards"> | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState(false);
@@ -231,8 +229,7 @@ const CardsJira = () => {
         </div>
       )}
 
-      <JiraCardDetailsDialog card={openCard} onClose={() => setOpenCard(null)} onRewrite={card => { setOpenCard(null); setRewriteCard(card); }} />
-      <CardRewriteSheet card={rewriteCard} onClose={() => setRewriteCard(null)} />
+      <JiraCardDetailsDialog card={openCard} onClose={() => setOpenCard(null)} />
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">
