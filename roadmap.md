@@ -1,8 +1,8 @@
 # Roadmap
 
-- [ ] Adicionar modal de detalhes dos Cards Jira, preservando listagem e reescrita existente
-- [ ] Buscar detalhes com autenticação existente e renderizar descrição original com segurança
-- [ ] Validar modal, prioridades, descrições e fluxo com dados reais
+- [x] Adicionar modal de detalhes dos Cards Jira, preservando listagem e reescrita existente
+- [x] Buscar detalhes com autenticação existente e renderizar descrição original com segurança
+- [x] Validar modal, prioridades, descrições e fluxo com dados reais
 
 - [x] Corrigir o kit Cypress para carregar o reporter local de forma robusta
 - [x] Incorporar e validar o workflow enviado
