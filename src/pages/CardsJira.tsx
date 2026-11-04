@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatusDot from "@/components/StatusDot";
 import { LayoutGrid, List, RefreshCw, Plus, Pencil, Trash2, X, Loader2, Filter } from "lucide-react";
 import { IssueLinkIcon } from "@/components/jira/IssueLinkIcon";
+import CardRewriteSheet from "@/components/jira/CardRewriteSheet";
+import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -42,6 +44,7 @@ const CardsJira = () => {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [openCard, setOpenCard] = useState<Tables<"jira_cards"> | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState(false);
@@ -121,8 +124,14 @@ const CardsJira = () => {
 
   const jiraUrl = (key: string) => `https://orcafascio.atlassian.net/browse/${key}`;
 
+  // Abre o painel do card, exceto quando o clique foi num link ou botão do próprio card.
+  const openDetails = (card: Tables<"jira_cards">) => (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("a, button")) return;
+    setOpenCard(card);
+  };
+
   const CardItem = ({ card }: { card: any }) => (
-    <div className="min-w-0 bg-card border border-border rounded-xl p-4">
+    <div onClick={openDetails(card)} className="min-w-0 bg-card border border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-colors">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-2 lg:flex-nowrap lg:gap-0">
         <span className="inline-flex items-center">
           <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
@@ -197,7 +206,7 @@ const CardsJira = () => {
       ) : (
         <div className="space-y-2">
           {filtered.map((card) => (
-            <div key={card.id} className="bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-4">
+            <div key={card.id} onClick={openDetails(card)} className="cursor-pointer hover:border-primary/50 transition-colors bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-4">
               <StatusDot color={statusColors[card.status as CardStatus]} />
               <span className="inline-flex items-center w-16">
                 <a href={jiraUrl(card.key)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-mono cursor-pointer hover:underline">{card.key}</a>
@@ -219,6 +228,8 @@ const CardsJira = () => {
           ))}
         </div>
       )}
+
+      <CardRewriteSheet card={openCard} onClose={() => setOpenCard(null)} />
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">
