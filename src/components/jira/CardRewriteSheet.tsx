@@ -13,6 +13,22 @@ import { copyRich, formatCardHtml, formatCardText, type OriginalCard, type Rewri
 const PONTE_URL = "http://127.0.0.1:8787";
 const TOKEN_KEY = "qahub-ponte-token";
 
+// Site público falando com 127.0.0.1: o Chrome pede "acesso à rede local" e segura a requisição até a
+// pessoa responder, sem erro. Por isso todo acesso à ponte tem prazo; targetAddressSpace avisa o Chrome
+// que o destino é local (outros navegadores ignoram).
+const ponteFetch = async (path: string, init: RequestInit, timeoutMs: number) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(`${PONTE_URL}${path}`, { ...init, signal: controller.signal, targetAddressSpace: "loopback" } as RequestInit);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+// Só abortamos por prazo, então AbortError aqui sempre quer dizer "não respondeu a tempo".
+const isTimeout = (err: unknown) => err instanceof DOMException && (err.name === "AbortError" || err.name === "TimeoutError");
+
 const readToken = () => {
   try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
 };
@@ -32,7 +48,7 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
   const [ponteToken, setPonteToken] = useState(readToken);
   const [tokenDraft, setTokenDraft] = useState("");
-  const [ponteIssue, setPonteIssue] = useState<"offline" | "token" | null>(null);
+  const [ponteIssue, setPonteIssue] = useState<"offline" | "blocked" | "token" | null>(null);
 
   useEffect(() => {
     setOriginal(null);
@@ -70,15 +86,23 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
         return;
       }
 
+      const headers = { "Content-Type": "application/json", "x-ponte-token": ponteToken };
+      // Checagem rápida antes da reescrita: separa "ponte desligada/bloqueada" de "Claude ainda pensando".
+      try {
+        await ponteFetch("/status", { headers }, 15_000);
+      } catch (err) {
+        setPonteIssue(isTimeout(err) ? "blocked" : "offline");
+        return;
+      }
+      setPonteIssue(null);
+
       let res: Response;
       try {
-        res = await fetch(`${PONTE_URL}/reescrever`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-ponte-token": ponteToken },
-          body: JSON.stringify({ key: card.key, ...source }),
-        });
-      } catch {
-        setPonteIssue("offline");
+        // A ponte desiste do Claude em 180s; aqui espera um pouco mais para receber o erro dela.
+        res = await ponteFetch("/reescrever", { method: "POST", headers, body: JSON.stringify({ key: card.key, ...source }) }, 200_000);
+      } catch (err) {
+        if (!isTimeout(err)) setPonteIssue("offline");
+        else toast.error("A ponte não respondeu a tempo. Veja o terminal do npm run ponte-ia.");
         return;
       }
       if (res.status === 401) {
@@ -155,7 +179,18 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
                 <p className="flex items-center gap-1.5 font-semibold"><PlugZap className="w-3.5 h-3.5" /> A ponte local está desligada</p>
                 <p className="text-muted-foreground">
                   No terminal, dentro da pasta do QA Hub, rode <code className="font-mono text-foreground">npm run ponte-ia</code> e clique no botão de novo.
-                  Se o navegador perguntar sobre acesso à rede local, permita.
+                  Se ela já está rodando, o navegador bloqueou o acesso: clique no ícone à esquerda do endereço do site, em
+                  "Acesso à rede local" escolha Permitir e recarregue a página.
+                </p>
+              </div>
+            )}
+
+            {ponteIssue === "blocked" && (
+              <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-foreground space-y-1.5">
+                <p className="flex items-center gap-1.5 font-semibold text-warning"><PlugZap className="w-3.5 h-3.5" /> O navegador está esperando sua permissão</p>
+                <p className="text-muted-foreground">
+                  O Chrome pede autorização para o QA Hub falar com a ponte no seu computador. Procure o aviso de
+                  "acesso à rede local" perto da barra de endereço (ou no ícone à esquerda do endereço), escolha Permitir e clique no botão de novo.
                 </p>
               </div>
             )}

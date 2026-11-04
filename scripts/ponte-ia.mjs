@@ -154,6 +154,7 @@ const server = createServer(async (req, res) => {
       if (typeof body.texto !== "string" || !body.texto.trim()) return send(400, { error: "O card não tem texto para reescrever" });
       const key = String(body.key || "card");
 
+      console.log(`→ ${key}: reescrevendo...`);
       const started = Date.now();
       const rewritten = await runClaude({ titulo: String(body.titulo || key), texto: body.texto, anexos: String(body.anexos || "") });
       console.log(`✓ ${key} reescrito em ${Math.round((Date.now() - started) / 1000)}s`);
