@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Check, Copy, ExternalLink, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, Copy, ExternalLink, KeyRound, Loader2, PlugZap, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { copyRich, formatCardHtml, formatCardText, type OriginalCard, type RewrittenCard } from "@/lib/cardRewrite";
+
+// A reescrita roda no Claude Code desta máquina, via `npm run ponte-ia` (scripts/ponte-ia.mjs).
+const PONTE_URL = "http://127.0.0.1:8787";
+const TOKEN_KEY = "qahub-ponte-token";
+
+const readToken = () => {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+};
 
 type Props = { card: Tables<"jira_cards"> | null; onClose: () => void };
 
@@ -27,6 +35,9 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
+  const [ponteToken, setPonteToken] = useState(readToken);
+  const [tokenDraft, setTokenDraft] = useState("");
+  const [ponteIssue, setPonteIssue] = useState<"offline" | "token" | null>(null);
 
   useEffect(() => {
     setOriginal(null);
@@ -34,17 +45,54 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
     setTitle("");
     setBody("");
     setCopied(null);
+    setPonteIssue(null);
   }, [card?.key]);
+
+  const saveToken = () => {
+    const token = tokenDraft.trim();
+    if (!token) return;
+    try { localStorage.setItem(TOKEN_KEY, token); } catch { /* fica só nesta sessão */ }
+    setPonteToken(token);
+    setTokenDraft("");
+    setPonteIssue(null);
+  };
 
   const rewrite = async () => {
     if (!card) return;
     setLoading(true);
     try {
-      // Ao gerar de novo, manda o original que está na tela (o QA pode ter ajustado).
-      const payload = original ? { key: card.key, ...original } : { key: card.key };
-      const { data, error } = await supabase.functions.invoke("rewrite-card", { body: payload });
-      if (error) throw new Error(await errorMessage(error));
-      setOriginal(data.original);
+      // Ao gerar de novo, usa o original que está na tela (o QA pode ter ajustado).
+      let source = original;
+      if (!source) {
+        const { data, error } = await supabase.functions.invoke("jira-card-text", { body: { key: card.key } });
+        if (error) throw new Error(await errorMessage(error));
+        source = data.original as OriginalCard;
+        setOriginal(source);
+      }
+      if (!ponteToken) {
+        setPonteIssue("token");
+        return;
+      }
+
+      let res: Response;
+      try {
+        res = await fetch(`${PONTE_URL}/reescrever`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-ponte-token": ponteToken },
+          body: JSON.stringify(source),
+        });
+      } catch {
+        setPonteIssue("offline");
+        return;
+      }
+      if (res.status === 401) {
+        setPonteIssue("token");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `ponte respondeu ${res.status}`);
+
+      setPonteIssue(null);
       setResult(data.rewritten);
       setTitle(data.rewritten.titulo);
       setBody(formatCardText(data.rewritten));
@@ -106,6 +154,33 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
               {loading ? "Reescrevendo..." : result ? "Gerar de novo" : "Reescrever card com IA"}
             </button>
 
+            {ponteIssue === "offline" && (
+              <div className="rounded-lg border border-border bg-secondary/50 p-3 text-xs text-foreground space-y-1.5">
+                <p className="flex items-center gap-1.5 font-semibold"><PlugZap className="w-3.5 h-3.5" /> A ponte local está desligada</p>
+                <p className="text-muted-foreground">
+                  No terminal, dentro da pasta do QA Hub, rode <code className="font-mono text-foreground">npm run ponte-ia</code> e clique no botão de novo.
+                  Se o navegador perguntar sobre acesso à rede local, permita.
+                </p>
+              </div>
+            )}
+
+            {ponteIssue === "token" && (
+              <div className="rounded-lg border border-border bg-secondary/50 p-3 text-xs text-foreground space-y-2">
+                <p className="flex items-center gap-1.5 font-semibold"><KeyRound className="w-3.5 h-3.5" /> Conectar à ponte local</p>
+                <p className="text-muted-foreground">Cole o token que aparece no terminal ao rodar <code className="font-mono text-foreground">npm run ponte-ia</code>.</p>
+                <div className="flex gap-2">
+                  <input
+                    value={tokenDraft}
+                    onChange={(e) => setTokenDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveToken(); }}
+                    placeholder="Token da ponte"
+                    className="min-w-0 flex-1 bg-secondary border border-border rounded-lg px-3 py-2 text-base lg:text-sm text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button onClick={saveToken} className="min-h-11 lg:min-h-0 px-3 py-1.5 rounded-lg text-xs bg-primary text-primary-foreground font-medium">Salvar</button>
+                </div>
+              </div>
+            )}
+
             {result && (
               <>
                 {result.complementar.length > 0 && (
@@ -142,7 +217,7 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
             )}
 
             {original && (
-              <details className="group rounded-lg border border-border">
+              <details open={!result} className="group rounded-lg border border-border">
                 <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Texto original do suporte
                 </summary>

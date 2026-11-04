@@ -1,0 +1,68 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "titulo",
+    "breve_explicacao",
+    "acoes",
+    "resultado_esperado",
+    "observacoes",
+    "complementar"
+  ],
+  "properties": {
+    "titulo": {
+      "type": "string"
+    },
+    "breve_explicacao": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tipo",
+          "texto",
+          "itens"
+        ],
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "paragrafo",
+              "lista"
+            ]
+          },
+          "texto": {
+            "type": "string"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "acoes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resultado_esperado": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "complementar": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
