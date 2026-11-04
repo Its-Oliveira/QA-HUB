@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Check, Copy, ExternalLink, KeyRound, Loader2, PlugZap, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { descriptionText } from "@/lib/jiraDetails";
+import { jiraIssueDetailsQuery } from "@/lib/jiraIssueQuery";
 import { copyRich, formatCardHtml, formatCardText, type OriginalCard, type RewrittenCard } from "@/lib/cardRewrite";
 
 // A reescrita roda na ponte local (`npm run ponte-ia`, scripts/ponte-ia.mjs), com o
-// Claude Code desta máquina, a partir da descrição que o modal do card carregou do Jira.
+// Claude Code desta máquina, a partir da descrição do card no Jira (campo "Descrição do Problema").
 const PONTE_URL = "http://127.0.0.1:8787";
 const TOKEN_KEY = "qahub-ponte-token";
 
@@ -14,13 +17,13 @@ const readToken = () => {
   try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
 };
 
-// `description` vem do modal (campo "Descrição do Problema"); o sync-jira só guarda a descrição padrão.
-type Props = { card: Tables<"jira_cards"> | null; description?: string; onClose: () => void };
+type Props = { card: Tables<"jira_cards"> | null; onClose: () => void };
 
 const textareaClass =
   "w-full min-h-[14rem] resize-y bg-secondary border border-border rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary";
 
-const CardRewriteSheet = ({ card, description, onClose }: Props) => {
+const CardRewriteSheet = ({ card, onClose }: Props) => {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [original, setOriginal] = useState<OriginalCard | null>(null);
   const [result, setResult] = useState<RewrittenCard | null>(null);
@@ -53,11 +56,13 @@ const CardRewriteSheet = ({ card, description, onClose }: Props) => {
     if (!card) return;
     setLoading(true);
     try {
-      // Ao gerar de novo, usa o original que está na tela (o QA pode ter ajustado).
-      const source = original ?? { titulo: card.title, texto: description || card.description || "", anexos: "" };
+      // Ao gerar de novo, usa o original que está na tela (o QA pode ter ajustado). Na primeira vez,
+      // busca a descrição do Jira (vem do cache se o modal já carregou): o sync-jira não guarda esse campo.
+      const details = original ? null : await queryClient.fetchQuery(jiraIssueDetailsQuery(card));
+      const source = original ?? { titulo: card.title, texto: descriptionText(details?.description ?? null) || card.description || "", anexos: "" };
       setOriginal(source);
       if (!source.texto.trim()) {
-        toast.error("Este card não tem descrição no QA Hub. Cole o texto do suporte em \"Texto original\" e tente de novo.");
+        toast.error("O Jira não retornou descrição para este card. Cole o texto do suporte em \"Texto original\" e tente de novo.");
         return;
       }
       if (!ponteToken) {

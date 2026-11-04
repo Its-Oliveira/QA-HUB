@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { ExternalLink, Loader2, RefreshCw, Sparkles, AlertCircle, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { descriptionText, jiraPriority, type JiraIssueDetails } from "@/lib/jiraDetails";
+import { jiraPriority } from "@/lib/jiraDetails";
+import { jiraIssueDetailsQuery } from "@/lib/jiraIssueQuery";
 import JiraDescription from "./JiraDescription";
 
 const tones: Record<string, string> = {
@@ -20,25 +19,9 @@ const tones: Record<string, string> = {
 export default function JiraCardDetailsDialog({ card, onClose, onRewrite }: {
   card: Tables<"jira_cards"> | null;
   onClose: () => void;
-  onRewrite: (card: Tables<"jira_cards">, description: string) => void;
+  onRewrite: (card: Tables<"jira_cards">) => void;
 }) {
-  const { data, isPending, isError, isFetching, refetch } = useQuery({
-    queryKey: ["jira-issue-details", card?.key],
-    enabled: !!card,
-    staleTime: 60_000,
-    retry: false,
-    queryFn: async (): Promise<JiraIssueDetails> => {
-      if (!card) throw new Error("Nenhum card selecionado");
-      if (!card.jira_synced) return { key: card.key, summary: card.title, modules: [], priority: card.priority, description: card.description };
-      const { data, error } = await supabase.functions.invoke("jira-issue-details", { body: { issueKey: card.key } });
-      if (error) {
-        const details = error instanceof FunctionsHttpError ? await error.context.text() : error.message;
-        console.error("Falha ao carregar detalhes do Jira:", details);
-        throw new Error("Não foi possível carregar os detalhes deste bug.");
-      }
-      return data;
-    },
-  });
+  const { data, isPending, isError, isFetching, refetch } = useQuery(jiraIssueDetailsQuery(card));
   const priority = jiraPriority(data?.priority);
 
   return <Dialog open={!!card} onOpenChange={open => { if (!open) onClose(); }}>
@@ -64,7 +47,7 @@ export default function JiraCardDetailsDialog({ card, onClose, onRewrite }: {
           </>}
       </div>
       <footer className="flex shrink-0 flex-wrap gap-2 border-t border-border p-4 sm:justify-between sm:px-6">
-        <Button variant="outline" className="min-h-11" disabled={isPending} onClick={() => { if (card) onRewrite(card, descriptionText(data?.description ?? null)); }}><Sparkles /> Reescrever card com IA</Button>
+        <Button variant="outline" className="min-h-11" onClick={() => { if (card) onRewrite(card); }}><Sparkles /> Reescrever card com IA</Button>
         <Button asChild className="min-h-11"><a href={`https://orcafascio.atlassian.net/browse/${card?.key}`} target="_blank" rel="noopener noreferrer"><ExternalLink /> Abrir no Jira</a></Button>
       </footer>
     </DialogContent>
