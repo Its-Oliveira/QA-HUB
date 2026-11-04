@@ -1,4 +1,4 @@
-// Monta o card reescrito pela IA (edge function rewrite-card) no template que o
+// Monta o card reescrito pela IA (ponte local, scripts/ponte-ia.mjs) no template que o
 // QA cola no Jira. O formato fica no código, não na IA, para sair sempre igual.
 
 export type ExplanationBlock = { tipo: "paragrafo" | "lista"; texto: string; itens: string[] };

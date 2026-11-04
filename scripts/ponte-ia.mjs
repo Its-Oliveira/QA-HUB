@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Ponte local entre o QA Hub e o Claude Code: o botão "Reescrever card com IA"
-// manda o card para cá e esta ponte roda `claude -p` com a skill reescrever-card,
-// usando a assinatura do Claude logada nesta máquina (sem API key).
+// manda o texto do card (o que o QA Hub já sincronizou do Jira) e esta ponte roda
+// `claude -p` com a skill reescrever-card, usando a assinatura do Claude logada
+// nesta máquina (sem API key e sem passar pelo Supabase).
 //
 // Uso: npm run ponte-ia   (deixe o terminal aberto enquanto usa o QA Hub)
 
@@ -57,7 +58,7 @@ function sameToken(given) {
 }
 
 function runClaude(card) {
-  const prompt = `### Original\nTítulo: ${card.titulo}\n${card.texto}\nAnexos da issue: ${card.anexos || "nenhum"}`;
+  const prompt = `### Original\nTítulo: ${card.titulo}\n${card.texto}\nAnexos da issue: ${card.anexos || "não informado (considere só o que o texto diz)"}`;
   const args = [
     "-p",
     "--output-format", "json",
@@ -149,11 +150,13 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/reescrever") {
     try {
-      const card = JSON.parse(await readBody(req));
-      if (typeof card.texto !== "string" || !card.texto.trim()) return send(400, { error: "O card não tem texto para reescrever" });
+      const body = JSON.parse(await readBody(req));
+      if (typeof body.texto !== "string" || !body.texto.trim()) return send(400, { error: "O card não tem texto para reescrever" });
+      const key = String(body.key || "card");
+
       const started = Date.now();
-      const rewritten = await runClaude({ titulo: String(card.titulo || ""), texto: card.texto, anexos: String(card.anexos || "") });
-      console.log(`✓ ${card.titulo || "card"} reescrito em ${Math.round((Date.now() - started) / 1000)}s`);
+      const rewritten = await runClaude({ titulo: String(body.titulo || key), texto: body.texto, anexos: String(body.anexos || "") });
+      console.log(`✓ ${key} reescrito em ${Math.round((Date.now() - started) / 1000)}s`);
       return send(200, { rewritten });
     } catch (e) {
       console.error("✗", e.message);

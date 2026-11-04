@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Check, Copy, ExternalLink, KeyRound, Loader2, PlugZap, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { copyRich, formatCardHtml, formatCardText, type OriginalCard, type RewrittenCard } from "@/lib/cardRewrite";
 
-// A reescrita roda no Claude Code desta máquina, via `npm run ponte-ia` (scripts/ponte-ia.mjs).
+// A reescrita roda na ponte local (`npm run ponte-ia`, scripts/ponte-ia.mjs), com o
+// Claude Code desta máquina, a partir do texto que o sync-jira já trouxe para o QA Hub.
 const PONTE_URL = "http://127.0.0.1:8787";
 const TOKEN_KEY = "qahub-ponte-token";
 
@@ -18,15 +18,6 @@ type Props = { card: Tables<"jira_cards"> | null; onClose: () => void };
 
 const textareaClass =
   "w-full min-h-[14rem] resize-y bg-secondary border border-border rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary";
-
-/** Extrai a mensagem de erro do corpo da edge function (supabase-js só dá o status). */
-async function errorMessage(error: Error & { context?: Response }) {
-  try {
-    const body = await error.context?.json();
-    if (body?.error) return body.error as string;
-  } catch { /* corpo não é JSON */ }
-  return error.message || "erro desconhecido";
-}
 
 const CardRewriteSheet = ({ card, onClose }: Props) => {
   const [loading, setLoading] = useState(false);
@@ -62,12 +53,11 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
     setLoading(true);
     try {
       // Ao gerar de novo, usa o original que está na tela (o QA pode ter ajustado).
-      let source = original;
-      if (!source) {
-        const { data, error } = await supabase.functions.invoke("jira-card-text", { body: { key: card.key } });
-        if (error) throw new Error(await errorMessage(error));
-        source = data.original as OriginalCard;
-        setOriginal(source);
+      const source = original ?? { titulo: card.title, texto: card.description || "", anexos: "" };
+      setOriginal(source);
+      if (!source.texto.trim()) {
+        toast.error("Este card não tem descrição no QA Hub. Cole o texto do suporte em \"Texto original\" e tente de novo.");
+        return;
       }
       if (!ponteToken) {
         setPonteIssue("token");
@@ -79,7 +69,7 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
         res = await fetch(`${PONTE_URL}/reescrever`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-ponte-token": ponteToken },
-          body: JSON.stringify(source),
+          body: JSON.stringify({ key: card.key, ...source }),
         });
       } catch {
         setPonteIssue("offline");
@@ -223,7 +213,7 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
                 </summary>
                 <div className="flex flex-col gap-2 px-3 pb-3">
                   <p className="text-[11px] text-muted-foreground">
-                    Ajuste aqui se precisar e clique em "Gerar de novo". Anexos da issue: {original.anexos}.
+                    Texto sincronizado do Jira. Ajuste aqui se precisar (ex.: quebras de linha ou "imagem em anexo") e clique no botão de novo.
                   </p>
                   <input
                     value={original.titulo}
