@@ -46,7 +46,7 @@ const CardsJira = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<Tables<"jira_cards"> | null>(null);
-  const [rewriteCard, setRewriteCard] = useState<Tables<"jira_cards"> | null>(null);
+  const [rewriteCard, setRewriteCard] = useState<{ card: Tables<"jira_cards">; description: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState(false);
@@ -231,8 +231,8 @@ const CardsJira = () => {
         </div>
       )}
 
-      <JiraCardDetailsDialog card={openCard} onClose={() => setOpenCard(null)} onRewrite={card => { setOpenCard(null); setRewriteCard(card); }} />
-      <CardRewriteSheet card={rewriteCard} onClose={() => setRewriteCard(null)} />
+      <JiraCardDetailsDialog card={openCard} onClose={() => setOpenCard(null)} onRewrite={(card, description) => { setOpenCard(null); setRewriteCard({ card, description }); }} />
+      <CardRewriteSheet card={rewriteCard?.card ?? null} description={rewriteCard?.description} onClose={() => setRewriteCard(null)} />
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="bg-[#1a1d25] border-[#2a2d38] rounded-xl w-[calc(100vw-1rem)] max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 lg:w-full lg:max-h-none lg:overflow-visible">

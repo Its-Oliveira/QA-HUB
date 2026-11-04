@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { descriptionDocument, documentHasContent, jiraPriority, safeJiraLink } from "@/lib/jiraDetails";
+import { descriptionDocument, descriptionText, documentHasContent, jiraPriority, safeJiraLink } from "@/lib/jiraDetails";
 
 describe("Prioridades originais do Jira", () => {
   it("Highest e Critical são críticas", () => { expect(jiraPriority("Highest").tone).toBe("critical"); expect(jiraPriority("Critical").tone).toBe("critical"); });
@@ -28,5 +28,21 @@ describe("Descrição original segura", () => {
     expect(doc?.content?.[0].type).toBe("bulletList");
     expect(doc?.content?.[0].content).toHaveLength(2);
     expect(doc?.content?.[1]).toEqual({ type: "codeBlock", content: [{ type: "text", text: "const x = 1;" }] });
+  });
+});
+describe("descriptionText", () => {
+  it("converte o ADF em texto com quebras, listas, links e anexos", () => {
+    const doc = { type: "doc", content: [
+      { type: "paragraph", content: [{ type: "text", text: "Breve explicação: valor errado." }] },
+      { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "30 dias" }] }] }] },
+      { type: "paragraph", content: [{ type: "text", text: "Orçamento", marks: [{ type: "link", attrs: { href: "https://app.orcafascio.com/orc/1" } }] }] },
+      { type: "mediaSingle", content: [{ type: "media", attrs: {} }] },
+    ] };
+    expect(descriptionText(doc)).toBe("Breve explicação: valor errado.\n* 30 dias\nOrçamento (https://app.orcafascio.com/orc/1)\n[Anexo no Jira]");
+  });
+
+  it("aceita texto puro e vazio", () => {
+    expect(descriptionText("Linha 1\nLinha 2")).toBe("Linha 1\nLinha 2");
+    expect(descriptionText(null)).toBe("");
   });
 });

@@ -109,3 +109,28 @@ export function documentHasContent(node: JiraDocumentNode | null): boolean {
   if (node.text?.trim() || ["media", "mention", "inlineCard", "emoji"].includes(node.type)) return true;
   return node.content?.some(documentHasContent) ?? false;
 }
+/** Texto puro da descrição, com quebras de linha, links e anexos visíveis (entrada da reescrita com IA). */
+export function descriptionText(value: JiraIssueDetails["description"]): string {
+  const text = (node: JiraDocumentNode): string => {
+    const children = (sep = "") => (node.content ?? []).map(text).join(sep);
+    switch (node.type) {
+      case "text": {
+        const href = node.marks?.find(m => m.type === "link")?.attrs?.href;
+        return typeof href === "string" && href !== node.text ? `${node.text} (${href})` : node.text ?? "";
+      }
+      case "hardBreak": return "\n";
+      case "paragraph": case "heading": return children() + "\n";
+      case "bulletList": case "orderedList":
+        return (node.content ?? []).map((item, i) => `${node.type === "bulletList" ? "*" : `${i + 1}.`} ${text(item).trim()}\n`).join("");
+      case "codeBlock": return children() + "\n";
+      case "tableRow": return (node.content ?? []).map(cell => text(cell).trim()).join(" | ") + "\n";
+      case "rule": return "---\n";
+      case "mention": case "emoji": return String(node.attrs?.text ?? node.attrs?.shortName ?? "");
+      case "inlineCard": case "blockCard": return String(node.attrs?.url ?? "");
+      case "media": return `[Anexo no Jira${node.attrs?.alt ? `: ${node.attrs.alt}` : ""}]\n`;
+      default: return children();
+    }
+  };
+  const document = descriptionDocument(value);
+  return document ? text(document).replace(/\n{3,}/g, "\n\n").trim() : "";
+}

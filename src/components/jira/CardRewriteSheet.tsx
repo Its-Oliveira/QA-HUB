@@ -6,7 +6,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { copyRich, formatCardHtml, formatCardText, type OriginalCard, type RewrittenCard } from "@/lib/cardRewrite";
 
 // A reescrita roda na ponte local (`npm run ponte-ia`, scripts/ponte-ia.mjs), com o
-// Claude Code desta máquina, a partir do texto que o sync-jira já trouxe para o QA Hub.
+// Claude Code desta máquina, a partir da descrição que o modal do card carregou do Jira.
 const PONTE_URL = "http://127.0.0.1:8787";
 const TOKEN_KEY = "qahub-ponte-token";
 
@@ -14,12 +14,13 @@ const readToken = () => {
   try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
 };
 
-type Props = { card: Tables<"jira_cards"> | null; onClose: () => void };
+// `description` vem do modal (campo "Descrição do Problema"); o sync-jira só guarda a descrição padrão.
+type Props = { card: Tables<"jira_cards"> | null; description?: string; onClose: () => void };
 
 const textareaClass =
   "w-full min-h-[14rem] resize-y bg-secondary border border-border rounded-lg px-3 py-2.5 text-base lg:text-sm text-foreground font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary";
 
-const CardRewriteSheet = ({ card, onClose }: Props) => {
+const CardRewriteSheet = ({ card, description, onClose }: Props) => {
   const [loading, setLoading] = useState(false);
   const [original, setOriginal] = useState<OriginalCard | null>(null);
   const [result, setResult] = useState<RewrittenCard | null>(null);
@@ -53,7 +54,7 @@ const CardRewriteSheet = ({ card, onClose }: Props) => {
     setLoading(true);
     try {
       // Ao gerar de novo, usa o original que está na tela (o QA pode ter ajustado).
-      const source = original ?? { titulo: card.title, texto: card.description || "", anexos: "" };
+      const source = original ?? { titulo: card.title, texto: description || card.description || "", anexos: "" };
       setOriginal(source);
       if (!source.texto.trim()) {
         toast.error("Este card não tem descrição no QA Hub. Cole o texto do suporte em \"Texto original\" e tente de novo.");

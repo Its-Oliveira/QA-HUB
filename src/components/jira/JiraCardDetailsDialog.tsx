@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { jiraPriority, type JiraIssueDetails } from "@/lib/jiraDetails";
+import { descriptionText, jiraPriority, type JiraIssueDetails } from "@/lib/jiraDetails";
 import JiraDescription from "./JiraDescription";
 
 const tones: Record<string, string> = {
@@ -20,7 +20,7 @@ const tones: Record<string, string> = {
 export default function JiraCardDetailsDialog({ card, onClose, onRewrite }: {
   card: Tables<"jira_cards"> | null;
   onClose: () => void;
-  onRewrite: (card: Tables<"jira_cards">) => void;
+  onRewrite: (card: Tables<"jira_cards">, description: string) => void;
 }) {
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: ["jira-issue-details", card?.key],
@@ -64,7 +64,7 @@ export default function JiraCardDetailsDialog({ card, onClose, onRewrite }: {
           </>}
       </div>
       <footer className="flex shrink-0 flex-wrap gap-2 border-t border-border p-4 sm:justify-between sm:px-6">
-        <Button variant="outline" className="min-h-11" onClick={() => { if (card) onRewrite(card); }}><Sparkles /> Reescrever card com IA</Button>
+        <Button variant="outline" className="min-h-11" disabled={isPending} onClick={() => { if (card) onRewrite(card, descriptionText(data?.description ?? null)); }}><Sparkles /> Reescrever card com IA</Button>
         <Button asChild className="min-h-11"><a href={`https://orcafascio.atlassian.net/browse/${card?.key}`} target="_blank" rel="noopener noreferrer"><ExternalLink /> Abrir no Jira</a></Button>
       </footer>
     </DialogContent>
