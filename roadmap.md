@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Corrigir leitura do campo personalizado Descrição do Problema e validar BUG-2062
+
 - [x] Adicionar modal de detalhes dos Cards Jira, preservando listagem e reescrita existente
 - [x] Buscar detalhes com autenticação existente e renderizar descrição original com segurança
 - [x] Validar modal, prioridades, descrições e fluxo com dados reais
