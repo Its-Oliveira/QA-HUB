@@ -11,18 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import {
-  Activity,
-  BarChart3,
-  CheckCircle2,
-  Clock3,
-  FileCode2,
-  Loader2,
-  Play,
-  Radio,
-  XCircle,
-} from "lucide-react";
-import LatestRunCard from "@/components/automation/LatestRunCard";
+import { Loader2, Play } from "lucide-react";
 import TestTree from "@/components/automation/TestTree";
 import {
   useTestResults,
@@ -237,27 +226,100 @@ export default function AutomacaoTestes() {
   const runningTests = latestResults.filter((result) => result.status === "running").length;
   const completedTests = passedTests + failedTests;
   const successRate = completedTests ? Math.round((passedTests / completedTests) * 100) : 0;
-  const recentRuns = (history.data?.runs || []).slice(0, 7).reverse();
+  const canDispatch =
+    !busy &&
+    !duplicate &&
+    !!definition.data &&
+    !definition.isFetching &&
+    !definition.isError &&
+    !Object.entries(definition.data?.inputs || {}).some(
+      ([key, spec]) => spec.required && (inputs[key] === "" || inputs[key] == null),
+    );
+  const total = latestResults.length;
+  const share = (n: number) => `${total ? (n / total) * 100 : 0}%`;
   return (
-    <div className="space-y-5 pb-8">
-      <header className="flex flex-col gap-4 border-b border-border/60 pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className={`mb-3 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${connected ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"}`}>
-            <span className="relative flex h-2 w-2">
-              <span className={`absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping ${connected ? "bg-success" : "bg-warning"}`} />
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`} />
+    <div className="space-y-8 pb-8">
+      <header className="flex flex-wrap items-end justify-between gap-5">
+        <div className="min-w-0 space-y-2">
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Testes automatizados</h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
+            <span className={`inline-flex items-center gap-1.5 ${connected ? "text-primary" : "text-warning"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-primary" : "bg-warning"}`} />
+              {connected ? "ao vivo" : "conectando"}
             </span>
-            {connected ? "Monitoramento ao vivo" : "Conectando ao monitoramento"}
+            {latest.data && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{new Date(latest.data.created_at).toLocaleString("pt-BR")}</span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  branch <span className="font-mono text-foreground/80">{latest.data.branch}</span>
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>{latest.data.workflow_name || "Cypress"}</span>
+                <span aria-hidden="true">·</span>
+                <span className="tabular-nums">{duration(latest.data)}</span>
+                <span aria-hidden="true">·</span>
+                <button
+                  className="text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => openRun(latest.data!.id)}
+                >
+                  Ver detalhes
+                </button>
+              </>
+            )}
           </div>
-           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Painel de Testes Automatizados</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Execuções Cypress, resultados por teste e histórico em um único painel.
-          </p>
         </div>
-        <Button className="h-10 shadow-sm transition-all duration-150 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => document.getElementById("nova-execucao")?.scrollIntoView({ behavior: "smooth" })}>
-          <Play className="h-4 w-4" />
-          Nova execução
-        </Button>
+
+        <section id="nova-execucao" aria-label="Nova execução" className="flex flex-wrap items-end gap-2">
+          {catalog.isLoading ? (
+            <p className="text-sm text-muted-foreground">Carregando opções…</p>
+          ) : catalog.data && !catalog.data.workflows.length ? (
+            <p className="text-sm text-muted-foreground">Nenhum workflow ativo encontrado.</p>
+          ) : (
+            <>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Branch
+                <select className={`${selectClass} min-w-32`} value={branch} onChange={(e) => setBranch(e.target.value)}>
+                  {catalog.data?.branches.map((b) => <option key={b}>{b}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Workflow
+                <select className={`${selectClass} min-w-32`} value={workflow} onChange={(e) => setWorkflow(e.target.value)}>
+                  {catalog.data?.workflows.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              </label>
+              {Object.entries(definition.data?.inputs || {}).map(([key, spec]) => (
+                <label key={key} className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  <span>{spec.description || key}{spec.required ? " *" : ""}</span>
+                  {spec.type === "boolean" ? (
+                    <input className="h-10 w-5" type="checkbox" checked={inputs[key] === true} onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.checked }))} />
+                  ) : ["choice", "environment"].includes(spec.type || "") ? (
+                    <select className={`${selectClass} min-w-32`} value={String(inputs[key] ?? "")} onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.value }))}>
+                      <option value="">Selecione</option>
+                      {(spec.type === "environment" ? catalog.data?.environments || [] : spec.options || []).map((o) => <option key={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <Input className="h-10 w-40" type={spec.type === "number" ? "number" : "text"} value={String(inputs[key] ?? "")} onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.value }))} />
+                  )}
+                </label>
+              ))}
+            </>
+          )}
+          <Button
+            className="h-10 font-semibold"
+            variant={duplicate ? "secondary" : "default"}
+            title={duplicate ? "Já existe uma execução ativa para esta combinação." : undefined}
+            disabled={!canDispatch}
+            onClick={dispatch}
+          >
+            {busy || duplicate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            {duplicate ? "Em execução" : "Rodar testes"}
+          </Button>
+          {definition.isLoading && <p className="basis-full text-right text-xs text-muted-foreground">Carregando parâmetros…</p>}
+          {definition.error && <p role="alert" className="basis-full text-right text-xs text-destructive">{definition.error.message}</p>}
+        </section>
       </header>
 
       {[catalog.error, bootstrap.error, history.error, active.error]
@@ -274,143 +336,41 @@ export default function AutomacaoTestes() {
             </Button>
           </p>
         ))}
-       <section className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {[
-          { label: "Specs", value: totalSpecs, icon: FileCode2, tone: "text-primary", chip: "bg-primary/10", accent: "", num: "text-foreground" },
-          { label: "Testes", value: latestResults.length, icon: Activity, tone: "text-foreground", chip: "bg-secondary", accent: "", num: "text-foreground" },
-          { label: "Passaram", value: passedTests, icon: CheckCircle2, tone: "text-success", chip: "bg-success/10", accent: "before:bg-success", num: "text-success" },
-          { label: "Falharam", value: failedTests, icon: XCircle, tone: "text-destructive", chip: "bg-destructive/10", accent: "before:bg-destructive", num: "text-destructive" },
-          { label: "Taxa de sucesso", value: `${successRate}%`, icon: BarChart3, tone: "text-success", chip: "bg-success/10", accent: "before:bg-success", num: "text-success" },
-          { label: "Duração", value: latest.data ? duration(latest.data) : "—", icon: Clock3, tone: "text-primary", chip: "bg-primary/10", accent: "before:bg-primary", num: "text-primary" },
-        ].map((metric) => (
-          <article key={metric.label} className={`relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 transition-colors duration-150 hover:border-border ${metric.accent ? `before:absolute before:inset-x-0 before:top-0 before:h-0.5 ${metric.accent}` : ""}`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{metric.label}</span>
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${metric.chip}`}>
-                <metric.icon className={`h-4 w-4 ${metric.tone}`} />
-              </span>
-            </div>
-            <p className={`mt-3 font-display text-2xl font-bold tabular-nums ${metric.num}`}>{metric.value}</p>
-          </article>
-        ))}
+
+      <section aria-label="Resumo da última execução" className="space-y-3">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <span className="font-display text-xl font-semibold tabular-nums text-success">
+            {passedTests} <span className="font-sans text-sm font-normal text-muted-foreground">passaram</span>
+          </span>
+          <span className="font-display text-xl font-semibold tabular-nums text-destructive">
+            {failedTests} <span className="font-sans text-sm font-normal text-muted-foreground">falharam</span>
+          </span>
+          {!!runningTests && (
+            <span className="font-display text-xl font-semibold tabular-nums text-primary">
+              {runningTests} <span className="font-sans text-sm font-normal text-muted-foreground">rodando</span>
+            </span>
+          )}
+          <span className="ml-auto text-[13px] tabular-nums text-muted-foreground">
+            {total} testes · {totalSpecs} specs · {successRate}% de sucesso
+          </span>
+        </div>
+        <div
+          role="img"
+          aria-label={`${passedTests} passaram, ${failedTests} falharam, ${runningTests} rodando`}
+          className="flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-secondary"
+        >
+          <div className="bg-success" style={{ width: share(passedTests) }} />
+          <div className="bg-destructive" style={{ width: share(failedTests) }} />
+          <div className="bg-primary" style={{ width: share(runningTests) }} />
+        </div>
       </section>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-         <section className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
-            <div>
-              <h2 className="font-display font-semibold">Árvore da última execução</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Pastas, specs, describes e testes individuais
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium tabular-nums">
-              <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">{passedTests} passaram</span>
-              <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive">{failedTests} falharam</span>
-              {!!runningTests && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">{runningTests} rodando</span>}
-            </div>
-          </div>
-           <div className="scrollbar-subtle max-h-[720px] overflow-y-auto p-2 sm:p-4">
-            <TestTree
-              results={latestResults}
-              repository={catalog.data?.repository}
-              commitSha={latest.data?.commit_sha}
-              emptyMessage={latestResultsQuery.isLoading ? "Carregando resultados…" : "A última execução ainda não enviou resultados por teste."}
-            />
-          </div>
-        </section>
-
-         <aside className="min-w-0 space-y-5">
-          <section id="nova-execucao" className="rounded-xl border border-border/60 bg-card p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-sm font-semibold">Nova execução</h2>
-              <Play className="h-4 w-4 text-primary" />
-            </div>
-            {catalog.isLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando opções…</p>
-            ) : catalog.data && !catalog.data.workflows.length ? (
-              <p className="text-sm text-muted-foreground">Nenhum workflow ativo encontrado.</p>
-            ) : (
-              <div className="space-y-3">
-                <label className="block text-xs font-medium text-foreground/80">
-                  Branch
-                  <select className={`${selectClass} mt-1`} value={branch} onChange={(e) => setBranch(e.target.value)}>
-                    {catalog.data?.branches.map((b) => <option key={b}>{b}</option>)}
-                  </select>
-                </label>
-                <label className="block text-xs font-medium text-foreground/80">
-                  Workflow
-                  <select className={`${selectClass} mt-1`} value={workflow} onChange={(e) => setWorkflow(e.target.value)}>
-                    {catalog.data?.workflows.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
-                </label>
-                {definition.isLoading && <p className="text-xs text-muted-foreground">Carregando parâmetros…</p>}
-                {definition.error && <p role="alert" className="text-xs text-destructive">{definition.error.message}</p>}
-                {Object.entries(definition.data?.inputs || {}).map(([key, spec]) => (
-                  <label key={key} className="block space-y-1 text-xs text-muted-foreground">
-                    <span>{spec.description || key}{spec.required ? " *" : ""}</span>
-                    {spec.type === "boolean" ? (
-                      <input type="checkbox" checked={inputs[key] === true} onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.checked }))} />
-                    ) : ["choice", "environment"].includes(spec.type || "") ? (
-                      <select className={selectClass} value={String(inputs[key] ?? "")} onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.value }))}>
-                        <option value="">Selecione</option>
-                        {(spec.type === "environment" ? catalog.data?.environments || [] : spec.options || []).map((o) => <option key={o}>{o}</option>)}
-                      </select>
-                    ) : (
-                      <Input type={spec.type === "number" ? "number" : "text"} value={String(inputs[key] ?? "")} onChange={(e) => setInputs((v) => ({ ...v, [key]: e.target.value }))} />
-                    )}
-                  </label>
-                ))}
-              </div>
-            )}
-            {duplicate && <p className="mt-3 text-xs text-warning">Já existe uma execução ativa para esta combinação.</p>}
-            <Button className="mt-4 h-11 w-full font-semibold shadow-sm transition-all duration-150 hover:brightness-110 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card" disabled={busy || duplicate || !definition.data || definition.isFetching || definition.isError || Object.entries(definition.data?.inputs || {}).some(([key, spec]) => spec.required && (inputs[key] === "" || inputs[key] == null))} onClick={dispatch}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              Rodar testes
-            </Button>
-          </section>
-
-          <LatestRunCard run={latest.data} repository={catalog.data?.repository} onOpen={openRun} />
-
-          <section className="rounded-xl border border-border/60 bg-card p-4">
-            <h2 className="mb-3 font-display text-sm font-semibold">Execuções em andamento</h2>
-            {!active.data?.length && <p className="text-xs text-muted-foreground">Nenhuma execução ativa.</p>}
-            <div className="space-y-2">
-              {active.data?.map((r) => (
-                <Button key={r.id} variant="ghost" className="h-auto w-full justify-start whitespace-normal border border-border px-3 py-3 text-left" onClick={() => openRun(r.id)}>
-                  <span className="flex-1">
-                    <span className="block text-sm">{r.workflow_name} · {r.branch}</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">{r.triggered_by} · {duration(r)}</span>
-                  </span>
-                  <Badge status={r.status} />
-                </Button>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-border/60 bg-card p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-sm font-semibold">Execuções recentes</h2>
-              <span className="text-xs text-muted-foreground">{recentRuns.length} registros</span>
-            </div>
-            <div className="flex h-24 items-end gap-2" aria-label="Resumo visual das execuções recentes">
-              {recentRuns.map((run) => {
-                const failed = ["failure", "failed", "error_ao_disparar", "timed_out"].includes(run.status);
-                const activeRun = ["queued", "in_progress", "em_execucao"].includes(run.status);
-                return (
-                  <div key={run.id} className="flex h-full flex-1 items-end" title={`${run.workflow_name || "Cypress"}: ${labels[run.status] || run.status}`}>
-                    <div className={`w-full rounded-sm ${failed ? "h-1/2 bg-destructive" : activeRun ? "h-3/4 bg-primary" : "h-full bg-success"}`} />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex gap-4 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-success" /> Passaram</span>
-              <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-destructive" /> Falharam</span>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <TestTree
+        results={latestResults}
+        repository={catalog.data?.repository}
+        commitSha={latest.data?.commit_sha}
+        emptyMessage={latestResultsQuery.isLoading ? "Carregando resultados…" : "A última execução ainda não enviou resultados por teste."}
+      />
 
       <section className="space-y-3 border-t border-border pt-5">
         <div>

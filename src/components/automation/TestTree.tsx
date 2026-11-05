@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   buildFolderTree,
   countFailedSpecs,
@@ -17,13 +17,11 @@ import {
 } from "@/lib/testResults";
 import { safeUrl } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   CheckCircle2,
   ChevronRight,
   CircleDashed,
-  FileCode2,
-  Folder as FolderIcon,
-  FolderOpen,
   Loader2,
   MinusCircle,
   XCircle,
@@ -52,32 +50,52 @@ export const StatusIcon = ({ status }: { status: TestStatus }) => {
   return <MinusCircle {...props} className={`${props.className} text-muted-foreground`} />;
 };
 
-interface LinkInfo {
-  repository?: string;
-  commitSha?: string | null;
-}
-
 /** Tests are rendered in chunks so a suite with hundreds of `it`s stays fast. */
 const CHUNK = 40;
 
-/** Consistent, comfortable hit area for every expand/collapse control. */
-const ROW =
-   "flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors duration-150 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:min-h-10";
+const DOT: Record<TestStatus, string> = {
+  passed: "bg-success",
+  failed: "bg-destructive",
+  running: "bg-primary",
+  pending: "bg-warning",
+  skipped: "bg-muted-foreground/50",
+};
 
-const Chevron = ({ open }: { open: boolean }) => (
-  <ChevronRight
-    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
-  />
-);
+/** Every `it` under a spec or describe, in reporting order. */
+function flatTests(node: TreeNode): TestResult[] {
+  return [...node.tests, ...node.children.flatMap(flatTests)];
+}
+
+/** Sum of the tests' durations, shown as "38s" or "4m 12s". */
+function totalDuration(tests: TestResult[]) {
+  const ms = tests.reduce((sum, test) => sum + (test.duration_ms || 0), 0);
+  if (!ms) return "—";
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+/** Specs of a module with the subfolder path in front ("Editar/"). */
+function moduleSpecs(folder: FolderNode, prefix = ""): { spec: SpecNode; dir: string }[] {
+  return [
+    ...folder.specs.map((spec) => ({ spec, dir: prefix })),
+    ...folder.folders.flatMap((child) => moduleSpecs(child, `${prefix}${child.name}/`)),
+  ];
+}
+
+const ATTENTION: Partial<Record<TestStatus, number>> = { failed: 0, running: 1 };
 
 function TestRow({ test }: { test: TestResult }) {
   const [open, setOpen] = useState(false);
   const failed = test.status === "failed";
+  const firstLine = (test.error_message || "").split("\n")[0];
   return (
-    <li className={failed ? "border-l-2 border-destructive bg-destructive/5" : "border-l-2 border-transparent"}>
-      <div className="flex min-h-9 items-start gap-2 rounded-r-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-secondary/40">
-        <StatusIcon status={test.status} />
-         <span className="min-w-0 flex-1 break-words">
+    <li className="border-t border-border/40 py-2">
+      <div className="flex items-start gap-2.5 text-sm">
+        <span className="mt-0.5">
+          <StatusIcon status={test.status} />
+        </span>
+        <span className={`min-w-0 flex-1 break-words ${test.status === "passed" ? "text-foreground/80" : "text-foreground"}`}>
           {test.title}
           {test.attempts > 1 && (
             <span className="ml-2 text-xs text-muted-foreground">
@@ -85,28 +103,27 @@ function TestRow({ test }: { test: TestResult }) {
             </span>
           )}
         </span>
-        <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
           {formatDuration(test.duration_ms)}
         </span>
       </div>
       {failed && (test.error_message || test.error_stack) && (
-        <div className="ml-6 pb-2">
-          <button
-            className="text-xs text-primary underline"
-            onClick={() => setOpen((o) => !o)}
-          >
-            {open ? "Ocultar erro" : "Ver erro"}
-          </button>
-          {open && (
-            <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded bg-secondary p-2 text-xs">
-              {test.error_message}
-              {test.error_stack ? `\n${test.error_stack}` : ""}
-            </pre>
-          )}
-          <div className="mt-1 flex gap-3">
+        <div className="mt-1.5 pl-[26px]">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            {!open && firstLine && (
+              <code className="min-w-0 flex-1 basis-72 truncate font-mono text-xs text-destructive">
+                {firstLine}
+              </code>
+            )}
+            <button
+              className="text-xs text-primary underline-offset-2 hover:underline"
+              onClick={() => setOpen((o) => !o)}
+            >
+              {open ? "Ocultar erro" : "Erro completo"}
+            </button>
             {safeUrl(test.screenshot) && (
               <a
-                className="text-xs text-primary underline"
+                className="text-xs text-primary underline-offset-2 hover:underline"
                 href={safeUrl(test.screenshot)}
                 target="_blank"
                 rel="noreferrer"
@@ -116,7 +133,7 @@ function TestRow({ test }: { test: TestResult }) {
             )}
             {safeUrl(test.video) && (
               <a
-                className="text-xs text-primary underline"
+                className="text-xs text-primary underline-offset-2 hover:underline"
                 href={safeUrl(test.video)}
                 target="_blank"
                 rel="noreferrer"
@@ -125,167 +142,129 @@ function TestRow({ test }: { test: TestResult }) {
               </a>
             )}
           </div>
+          {open && (
+            <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded-md bg-destructive/5 p-3 font-mono text-xs text-foreground/90">
+              {test.error_message}
+              {test.error_stack ? `\n${test.error_stack}` : ""}
+            </pre>
+          )}
         </div>
       )}
     </li>
   );
 }
 
-function TestList({ tests }: { tests: TestResult[] }) {
+/** Tests grouped under their describe path, flat instead of nested boxes. */
+function SpecTests({ spec, onlyFailed }: { spec: SpecNode; onlyFailed: boolean }) {
   const [limit, setLimit] = useState(CHUNK);
+  const tests = flatTests(spec).filter((test) => !onlyFailed || test.status !== "passed");
+  const shown = tests.slice(0, limit);
   return (
-    <>
-       <ul className="ml-2 border-l border-border/50 pl-2 sm:pl-3">
-        {tests.slice(0, limit).map((test) => (
-          <TestRow key={test.id} test={test} />
-        ))}
+    <div className="pb-3 pl-10 pr-4 sm:pl-14">
+      <ul>
+        {shown.map((test, i) => {
+          const describe = test.describe_path.join(" › ");
+          const previous = shown[i - 1]?.describe_path.join(" › ");
+          return (
+            <Fragment key={test.id}>
+              {describe && describe !== previous && (
+                <li className="pb-1 pt-2 text-xs text-muted-foreground">{describe}</li>
+              )}
+              <TestRow test={test} />
+            </Fragment>
+          );
+        })}
       </ul>
       {tests.length > limit && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-3 mt-1"
-          onClick={() => setLimit((l) => l + CHUNK)}
-        >
+        <Button variant="ghost" size="sm" className="mt-1" onClick={() => setLimit((l) => l + CHUNK)}>
           Mostrar mais ({tests.length - limit})
         </Button>
       )}
-    </>
+    </div>
   );
 }
 
-function Branch({
-  node,
-  link,
-  defaultOpen,
-}: {
-  node: TreeNode;
-  link: LinkInfo;
-  defaultOpen: boolean;
-}) {
-  const status = nodeStatus(node);
-  const [open, setOpen] = useState(defaultOpen || status === "failed");
-  return (
-    <li>
-      <button className={ROW} onClick={() => setOpen((o) => !o)}>
-        <Chevron open={open} />
-        <StatusIcon status={status} />
-         <span className="min-w-0 flex-1 break-words text-sm font-medium">{node.title}</span>
-        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
-          {countTests(node)}
-        </span>
-      </button>
-      {open && (
-         <div className="ml-2 border-l border-border/50 pl-2 sm:ml-4 sm:pl-3">
-          <ul>
-            {node.children.map((child) => (
-              <Branch key={child.key} node={child} link={link} defaultOpen={false} />
-            ))}
-          </ul>
-          {!!node.tests.length && <TestList tests={node.tests} />}
-        </div>
-      )}
-    </li>
-  );
-}
-
-function Spec({ node, link }: { node: SpecNode; link: LinkInfo }) {
-  const status = nodeStatus(node);
+function SpecRow({ spec, dir, onlyFailed }: { spec: SpecNode; dir: string; onlyFailed: boolean }) {
+  const status = nodeStatus(spec);
+  const tests = flatTests(spec);
   const [open, setOpen] = useState(status === "failed" || status === "running");
+  const failed = tests.filter((test) => test.status === "failed").length;
+  const passed = tests.filter((test) => test.status === "passed").length;
   return (
-    <div className={`overflow-hidden rounded-lg border bg-background/40 ${status === "failed" ? "border-destructive/30" : "border-border/50"}`}>
-      <button className={`${ROW} px-3 py-3`} onClick={() => setOpen((o) => !o)}>
-        <Chevron open={open} />
+    <div className="border-t border-border/50 first:border-t-0">
+      <button
+        className="flex min-h-12 w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <ChevronRight
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+        />
         <StatusIcon status={status} />
-        <FileCode2 className="h-4 w-4 shrink-0 text-primary" />
-         <span className="min-w-0 flex-1 break-all font-mono text-[13px]">{node.fileName}</span>
-        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
-          {countTests(node)} testes
+        <span className="min-w-0 flex-1 basis-48 truncate font-mono text-[13px]">
+          <span className="text-muted-foreground">{dir}</span>
+          {spec.fileName}
+        </span>
+        <span aria-hidden="true" className="hidden max-w-[200px] flex-wrap justify-end gap-[3px] sm:flex">
+          {tests.map((test) => (
+            <span key={test.id} className={`h-2 w-2 rounded-[2px] ${DOT[test.status]}`} />
+          ))}
+        </span>
+        <span className={`w-12 shrink-0 text-right text-[13px] font-semibold tabular-nums ${failed ? "text-destructive" : "text-success"}`}>
+          {passed}/{tests.length}
+        </span>
+        <span className="w-14 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
+          {totalDuration(tests)}
         </span>
       </button>
-      {open && (
-         <div className="border-t border-border/50 bg-background/30 px-1 py-2 sm:px-3">
-          <ul>
-            {node.children.map((child) => (
-              <Branch key={child.key} node={child} link={link} defaultOpen={false} />
-            ))}
-          </ul>
-          {!!node.tests.length && <TestList tests={node.tests} />}
-        </div>
-      )}
+      {open && <SpecTests spec={spec} onlyFailed={onlyFailed} />}
     </div>
   );
 }
 
-function Folder({
+function ModuleGroup({
+  title,
   folder,
-  link,
-  depth = 0,
-  defaultOpen = false,
+  onlyFailed,
 }: {
+  title?: string;
   folder: FolderNode;
-  link: LinkInfo;
-  depth?: number;
-  defaultOpen?: boolean;
+  onlyFailed: boolean;
 }) {
-  const status = folderStatus(folder);
-  const [open, setOpen] = useState(
-    defaultOpen || status === "failed" || status === "running",
+  const specs = moduleSpecs(folder).sort(
+    (a, b) => (ATTENTION[nodeStatus(a.spec)] ?? 2) - (ATTENTION[nodeStatus(b.spec)] ?? 2),
   );
+  const tests = specs.flatMap(({ spec }) => flatTests(spec));
+  const failed = tests.filter((test) => test.status === "failed").length;
   return (
-    <div
-      className={
-        depth === 0
-          ? "rounded-xl border border-border/60 bg-secondary/20 p-2"
-          : "rounded-lg border border-border/50 bg-background/30 p-2"
-      }
-    >
-      <button className={`${ROW} px-3`} onClick={() => setOpen((o) => !o)}>
-        <Chevron open={open} />
-        <StatusIcon status={status} />
-        {open ? (
-          <FolderOpen className="h-5 w-5 shrink-0 text-primary" />
-        ) : (
-          <FolderIcon className="h-5 w-5 shrink-0 text-primary" />
-        )}
-        <span
-           className={`min-w-0 flex-1 break-all ${
-            depth === 0
-              ? "font-display text-sm font-semibold"
-              : "text-sm font-semibold"
-          }`}
-        >
-          {folder.name}
-        </span>
-        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
-          {countFolderTests(folder)} testes
-        </span>
-      </button>
-      {open && (
-         <div className="ml-2 mt-2 space-y-3 border-l border-border/50 pt-1 pl-2 sm:ml-4 sm:pl-4">
-          {folder.folders.map((child) => (
-            <Folder key={child.key} folder={child} link={link} depth={depth + 1} />
-          ))}
-          {folder.specs.map((spec) => (
-            <Spec key={spec.spec} node={spec} link={link} />
-          ))}
+    <section className="space-y-2">
+      {title && (
+        <div className="flex flex-wrap items-baseline justify-between gap-2 px-1">
+          <h3 className="font-display text-[15px] font-semibold">{title}</h3>
+          <span className={`text-xs tabular-nums ${failed ? "text-destructive" : "text-muted-foreground"}`}>
+            {tests.length} testes · {specs.length} specs
+            {!!failed && ` · ${failed} ${failed > 1 ? "falhas" : "falha"}`}
+          </span>
         </div>
       )}
-    </div>
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
+        {specs.map(({ spec, dir }) => (
+          <SpecRow key={spec.spec} spec={spec} dir={dir} onlyFailed={onlyFailed} />
+        ))}
+      </div>
+    </section>
   );
 }
 
-const CHIP =
-  "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const chipTone = (active: boolean) =>
+const TAB =
+  "-mb-px inline-flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+const tabTone = (active: boolean) =>
   active
-    ? "border-primary/60 bg-primary/15 text-foreground"
-    : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground";
+    ? "border-primary text-foreground"
+    : "border-transparent text-muted-foreground hover:text-foreground";
 
 export default function TestTree({
   results,
-  repository,
-  commitSha,
   emptyMessage = "Nenhum detalhe de teste recebido para esta execução.",
 }: {
   results: TestResult[];
@@ -298,68 +277,71 @@ export default function TestTree({
   if (!results.length)
     return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   const base = moduleRoot(buildFolderTree(results));
-  const link = { repository, commitSha };
   const selected = base.folders.find((folder) => folder.key === moduleKey);
   const scope: FolderNode = selected
     ? { ...base, folders: [selected], specs: [] }
     : base;
   const visible = onlyFailed ? failedOnly(scope) : scope;
-  const failedSpecs = countFailedSpecs(scope);
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {base.folders.length > 1 && (
-          <div role="group" aria-label="Módulos" className="flex flex-wrap gap-2">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60">
+        {base.folders.length > 1 ? (
+          <nav aria-label="Módulos" className="flex flex-wrap gap-1">
             <button
-              className={`${CHIP} ${chipTone(!selected)}`}
+              className={`${TAB} ${tabTone(!selected)}`}
               aria-pressed={!selected}
               onClick={() => setModuleKey("")}
             >
               Todos
-              <span className="tabular-nums text-muted-foreground">{countFolderTests(base)}</span>
+              <span className="font-medium tabular-nums text-muted-foreground">{countFolderTests(base)}</span>
             </button>
             {base.folders.map((folder) => (
               <button
                 key={folder.key}
-                className={`${CHIP} ${chipTone(folder.key === selected?.key)}`}
+                className={`${TAB} ${tabTone(folder.key === selected?.key)}`}
                 aria-pressed={folder.key === selected?.key}
                 onClick={() => setModuleKey(folder.key)}
               >
-                <StatusIcon status={folderStatus(folder)} />
+                {folderStatus(folder) === "failed" && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Com falhas" />
+                )}
                 {folder.name}
-                <span className="tabular-nums text-muted-foreground">{countFolderTests(folder)}</span>
+                <span className="font-medium tabular-nums text-muted-foreground">{countFolderTests(folder)}</span>
               </button>
             ))}
-          </div>
+          </nav>
+        ) : (
+          <span />
         )}
-        <button
-          className={`${CHIP} ${onlyFailed ? "border-destructive/60 bg-destructive/15 text-foreground" : chipTone(false)}`}
-          aria-pressed={onlyFailed}
-          onClick={() => setOnlyFailed((value) => !value)}
-        >
-          <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-foreground/80">
+          <Switch checked={onlyFailed} onCheckedChange={setOnlyFailed} />
           Só specs que falharam
-          <span className="tabular-nums text-muted-foreground">{failedSpecs}</span>
-        </button>
+          <span className="tabular-nums text-muted-foreground">{countFailedSpecs(scope)}</span>
+        </label>
       </div>
       {!visible ? (
-        <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+        <p className="py-10 text-center text-sm text-muted-foreground">
           Nenhuma spec falhou {selected ? "neste módulo" : "nesta execução"}.
         </p>
       ) : (
-        <>
+        <div className="space-y-7">
           {visible.folders.map((folder) => (
-            <Folder
-              key={`${folder.key}|${moduleKey}|${onlyFailed}`}
+            <ModuleGroup
+              key={`${folder.key}|${onlyFailed}`}
+              title={folder.name}
               folder={folder}
-              link={link}
-              defaultOpen={!!selected || onlyFailed}
+              onlyFailed={onlyFailed}
             />
           ))}
-          {visible.specs.map((spec) => (
-            <Spec key={spec.spec} node={spec} link={link} />
-          ))}
-        </>
+          {!!visible.specs.length && (
+            <ModuleGroup
+              key={`raiz|${onlyFailed}`}
+              title={visible.folders.length ? "Outros" : undefined}
+              folder={{ ...visible, folders: [] }}
+              onlyFailed={onlyFailed}
+            />
+          )}
+        </div>
       )}
     </div>
   );
