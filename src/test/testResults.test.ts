@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFolderTree,
+  countFailedSpecs,
+  failedOnly,
+  moduleRoot,
   countFolderTests,
   folderStatus,
   normalizeSpecPath,
@@ -64,5 +67,27 @@ describe("buildFolderTree", () => {
     const root = buildFolderTree([make("smoke.cy.js", "a")]);
     expect(root.folders).toHaveLength(0);
     expect(root.specs[0].fileName).toBe("smoke.cy.js");
+  });
+});
+
+describe("modules and failed filter", () => {
+  const results = [
+    make("cypress/e2e/Cadastro/clientes.cy.js", "a"),
+    make("cypress/e2e/Orcamento/Editar/bdi.cy.js", "b", "failed"),
+    make("cypress/e2e/Orcamento/Exibir/curva.cy.js", "c"),
+  ];
+
+  it("skips the cypress/e2e wrapper and exposes modules", () => {
+    const base = moduleRoot(buildFolderTree(results));
+    expect(base.folders.map((f) => f.name)).toEqual(["Cadastro", "Orcamento"]);
+  });
+
+  it("keeps only failed specs and drops empty folders", () => {
+    const base = moduleRoot(buildFolderTree(results));
+    const failed = failedOnly(base)!;
+    expect(failed.folders.map((f) => f.name)).toEqual(["Orcamento"]);
+    expect(failed.folders[0].folders.map((f) => f.name)).toEqual(["Editar"]);
+    expect(countFailedSpecs(base)).toBe(1);
+    expect(failedOnly(base.folders[0])).toBeNull();
   });
 });

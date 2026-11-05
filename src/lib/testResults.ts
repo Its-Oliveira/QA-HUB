@@ -148,6 +148,34 @@ export function folderStatus(folder: FolderNode): TestStatus {
   return all.sort((a, b) => RANK[a] - RANK[b])[0];
 }
 
+/**
+ * Folder whose subfolders are the suite's modules (Bases de Preço, Cadastro…),
+ * skipping wrapper directories such as "cypress/e2e".
+ */
+export function moduleRoot(root: FolderNode): FolderNode {
+  let node = root;
+  while (!node.specs.length && node.folders.length === 1 && node.folders[0].folders.length)
+    node = node.folders[0];
+  return node;
+}
+
+/** Copy of the folder keeping only failed specs; null when nothing failed. */
+export function failedOnly(folder: FolderNode): FolderNode | null {
+  const folders = folder.folders
+    .map(failedOnly)
+    .filter((child): child is FolderNode => !!child);
+  const specs = folder.specs.filter((spec) => nodeStatus(spec) === "failed");
+  if (!folders.length && !specs.length) return null;
+  return { ...folder, folders, specs };
+}
+
+export function countFailedSpecs(folder: FolderNode): number {
+  return (
+    folder.specs.filter((spec) => nodeStatus(spec) === "failed").length +
+    folder.folders.reduce((sum, child) => sum + countFailedSpecs(child), 0)
+  );
+}
+
 export function countFolderTests(folder: FolderNode): number {
   return (
     folder.specs.reduce((sum, spec) => sum + countTests(spec), 0) +

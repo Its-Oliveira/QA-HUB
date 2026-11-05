@@ -1,10 +1,13 @@
 import { useState } from "react";
 import {
   buildFolderTree,
+  countFailedSpecs,
   countFolderTests,
+  failedOnly,
   countTests,
   folderStatus,
   formatDuration,
+  moduleRoot,
   nodeStatus,
   type FolderNode,
   type SpecNode,
@@ -218,13 +221,17 @@ function Folder({
   folder,
   link,
   depth = 0,
+  defaultOpen = false,
 }: {
   folder: FolderNode;
   link: LinkInfo;
   depth?: number;
+  defaultOpen?: boolean;
 }) {
   const status = folderStatus(folder);
-  const [open, setOpen] = useState(status === "failed" || status === "running");
+  const [open, setOpen] = useState(
+    defaultOpen || status === "failed" || status === "running",
+  );
   return (
     <div
       className={
@@ -268,6 +275,13 @@ function Folder({
   );
 }
 
+const CHIP =
+  "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const chipTone = (active: boolean) =>
+  active
+    ? "border-primary/60 bg-primary/15 text-foreground"
+    : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground";
+
 export default function TestTree({
   results,
   repository,
@@ -279,18 +293,74 @@ export default function TestTree({
   commitSha?: string | null;
   emptyMessage?: string;
 }) {
+  const [moduleKey, setModuleKey] = useState("");
+  const [onlyFailed, setOnlyFailed] = useState(false);
   if (!results.length)
     return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
-  const root = buildFolderTree(results);
+  const base = moduleRoot(buildFolderTree(results));
   const link = { repository, commitSha };
+  const selected = base.folders.find((folder) => folder.key === moduleKey);
+  const scope: FolderNode = selected
+    ? { ...base, folders: [selected], specs: [] }
+    : base;
+  const visible = onlyFailed ? failedOnly(scope) : scope;
+  const failedSpecs = countFailedSpecs(scope);
   return (
     <div className="space-y-3">
-      {root.folders.map((folder) => (
-        <Folder key={folder.key} folder={folder} link={link} />
-      ))}
-      {root.specs.map((spec) => (
-        <Spec key={spec.spec} node={spec} link={link} />
-      ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {base.folders.length > 1 && (
+          <div role="group" aria-label="Módulos" className="flex flex-wrap gap-2">
+            <button
+              className={`${CHIP} ${chipTone(!selected)}`}
+              aria-pressed={!selected}
+              onClick={() => setModuleKey("")}
+            >
+              Todos
+              <span className="tabular-nums text-muted-foreground">{countFolderTests(base)}</span>
+            </button>
+            {base.folders.map((folder) => (
+              <button
+                key={folder.key}
+                className={`${CHIP} ${chipTone(folder.key === selected?.key)}`}
+                aria-pressed={folder.key === selected?.key}
+                onClick={() => setModuleKey(folder.key)}
+              >
+                <StatusIcon status={folderStatus(folder)} />
+                {folder.name}
+                <span className="tabular-nums text-muted-foreground">{countFolderTests(folder)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          className={`${CHIP} ${onlyFailed ? "border-destructive/60 bg-destructive/15 text-foreground" : chipTone(false)}`}
+          aria-pressed={onlyFailed}
+          onClick={() => setOnlyFailed((value) => !value)}
+        >
+          <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+          Só specs que falharam
+          <span className="tabular-nums text-muted-foreground">{failedSpecs}</span>
+        </button>
+      </div>
+      {!visible ? (
+        <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+          Nenhuma spec falhou {selected ? "neste módulo" : "nesta execução"}.
+        </p>
+      ) : (
+        <>
+          {visible.folders.map((folder) => (
+            <Folder
+              key={`${folder.key}|${moduleKey}|${onlyFailed}`}
+              folder={folder}
+              link={link}
+              defaultOpen={!!selected || onlyFailed}
+            />
+          ))}
+          {visible.specs.map((spec) => (
+            <Spec key={spec.spec} node={spec} link={link} />
+          ))}
+        </>
+      )}
     </div>
   );
 }
