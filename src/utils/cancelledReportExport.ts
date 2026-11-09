@@ -29,7 +29,9 @@ function buildRankingRows(data: CancelledReportData) {
   return data.ranking.map((r, idx) => ({
     "#": idx + 1,
     Relator: r.reporter,
+    Criados: r.created,
     Cancelados: r.count,
+    "Taxa de cancelamento": `${r.rate.toFixed(1)}%`,
   }));
 }
 

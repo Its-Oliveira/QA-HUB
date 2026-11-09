@@ -42,6 +42,38 @@ async function fetchAllIssues(auth: string): Promise<any[]> {
   return all.filter((i) => (seen.has(i.key) ? false : (seen.add(i.key), true)));
 }
 
+async function fetchCreatedByReporter(auth: string): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  let nextPageToken: string | undefined;
+  const jql = `project = ${JIRA_PROJECT} AND issuetype = ${JIRA_ISSUETYPE} AND created >= startOfMonth() AND created <= now()`;
+
+  while (true) {
+    let url = `https://${JIRA_DOMAIN}/rest/api/3/search/jql?jql=${encodeURIComponent(
+      jql
+    )}&maxResults=100&fields=reporter`;
+    if (nextPageToken) url += `&nextPageToken=${encodeURIComponent(nextPageToken)}`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`Jira ${res.status}: ${t}`);
+    }
+
+    const data = await res.json();
+    const issues = data.issues || [];
+    for (const issue of issues) {
+      const reporter = issue.fields?.reporter?.displayName || "Sem relator";
+      counts[reporter] = (counts[reporter] || 0) + 1;
+    }
+    if (!data.nextPageToken || issues.length === 0) break;
+    nextPageToken = data.nextPageToken;
+  }
+
+  return counts;
+}
+
 async function fetchTotalMonth(auth: string): Promise<number> {
   const jql = `project = ${JIRA_PROJECT} AND issuetype = ${JIRA_ISSUETYPE} AND created >= startOfMonth() AND created <= now()`;
   // O endpoint /search/jql (paginado por token) NÃO retorna mais "total".

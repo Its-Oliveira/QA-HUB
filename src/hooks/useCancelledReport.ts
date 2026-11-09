@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { JiraIssueLink } from "@/types/jira";
+import { buildReporterRanking } from "@/utils/cancelledReport";
 
 // Campo 'reporter' (Relator) utilizado no lugar de 'assignee' (Responsável) — requisito de negócio
 export interface CancelledIssue {
