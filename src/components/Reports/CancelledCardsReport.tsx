@@ -63,7 +63,14 @@ const CancelledCardsReport = ({ data }: { data: CancelledReportData }) => {
                   <span className="text-muted-foreground mr-2">#{idx + 1}</span>
                   {r.reporter}
                 </span>
-                <span className="text-primary font-semibold">{r.count}</span>
+                <span className="shrink-0 text-right">
+                  <span className="block text-primary font-semibold">
+                    {r.count} cancelados
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {r.created} criados · {r.rate.toFixed(1)}%
+                  </span>
+                </span>
               </li>
             ))}
           </ul>

@@ -29,7 +29,9 @@ function buildRankingRows(data: CancelledReportData) {
   return data.ranking.map((r, idx) => ({
     "#": idx + 1,
     Relator: r.reporter,
+    Criados: r.created,
     Cancelados: r.count,
+    "Taxa de cancelamento": `${r.rate.toFixed(1)}%`,
   }));
 }
 
@@ -115,8 +117,14 @@ export function exportCancelledAsPdf(data: CancelledReportData) {
   doc.text("Ranking de Relatores", 14, y);
   autoTable(doc, {
     startY: y + 2,
-    head: [["#", "Relator", "Cancelados"]],
-    body: buildRankingRows(data).map((r) => [r["#"], r.Relator, r.Cancelados]),
+    head: [["#", "Relator", "Criados", "Cancelados", "% cancelamento"]],
+    body: buildRankingRows(data).map((r) => [
+      r["#"],
+      r.Relator,
+      r.Criados,
+      r.Cancelados,
+      r["Taxa de cancelamento"],
+    ]),
     styles: { fontSize: 9 },
     headStyles: { fillColor: [76, 110, 245] },
   });
@@ -177,7 +185,9 @@ export async function copyCancelledReportAsText(data: CancelledReportData) {
     lines.push("  (sem dados)");
   } else {
     data.ranking.forEach((r, idx) =>
-      lines.push(`  #${idx + 1} ${r.reporter} — ${r.count}`)
+      lines.push(
+        `  #${idx + 1} ${r.reporter} — criados: ${r.created} | cancelados: ${r.count} | ${r.rate.toFixed(1)}%`
+      )
     );
   }
   lines.push("");
