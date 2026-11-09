@@ -20,6 +20,8 @@ export interface CancelledIssue {
 export interface ReporterRank {
   reporter: string;
   count: number;
+  created: number;
+  rate: number;
 }
 
 export interface CancelledReportData {
@@ -57,14 +59,10 @@ export function useCancelledReport() {
       const totalMonth = res?.totalMonth ?? 0;
 
       // Agrupamento por reporter (Relator) — requisito de negócio
-      const counts = new Map<string, number>();
-      for (const i of issues) {
-        const key = i.reporter || "Sem relator";
-        counts.set(key, (counts.get(key) || 0) + 1);
-      }
-      const ranking: ReporterRank[] = Array.from(counts.entries())
-        .map(([reporter, count]) => ({ reporter, count }))
-        .sort((a, b) => b.count - a.count);
+      const ranking: ReporterRank[] = buildReporterRanking(
+        issues,
+        res?.createdByReporter || {}
+      );
 
       const cancellationRate =
         totalMonth > 0 ? (totalCancelled / totalMonth) * 100 : 0;

@@ -139,7 +139,11 @@ Deno.serve(async (req) => {
       });
     }
     const auth = btoa(`${email}:${token}`);
-    const [issues, totalMonth] = await Promise.all([fetchAllIssues(auth), fetchTotalMonth(auth)]);
+    const [issues, totalMonth, createdByReporter] = await Promise.all([
+      fetchAllIssues(auth),
+      fetchTotalMonth(auth),
+      fetchCreatedByReporter(auth),
+    ]);
 
     const simplified = issues.map((i: any) => ({
       key: i.key,
@@ -160,6 +164,7 @@ Deno.serve(async (req) => {
         issues: simplified,
         totalCancelled: simplified.length,
         totalMonth,
+        createdByReporter,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
