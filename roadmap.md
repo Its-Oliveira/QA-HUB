@@ -2,7 +2,7 @@
 
 - [x] Restaurar criados, cancelados e taxa de cancelamento por relator no relatório de cards cancelados
 - [x] Manter os demais relatórios e funcionalidades inalterados e validar o cálculo
-- [ ] Conferir o relatório com dados reais — aguardando a conta de acesso para o teste
+- [x] Conferir o relatório com dados reais usando a conta autorizada do Caio
 
 - [x] Corrigir leitura do campo personalizado Descrição do Problema e validar BUG-2062
 
