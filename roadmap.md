@@ -1,7 +1,8 @@
 # Roadmap
 
-- [ ] Restaurar criados, cancelados e taxa de cancelamento por relator no relatório de cards cancelados
-- [ ] Manter os demais relatórios e funcionalidades inalterados e validar o cálculo
+- [x] Restaurar criados, cancelados e taxa de cancelamento por relator no relatório de cards cancelados
+- [x] Manter os demais relatórios e funcionalidades inalterados e validar o cálculo
+- [ ] Conferir o relatório com dados reais — aguardando a conta de acesso para o teste
 
 - [x] Corrigir leitura do campo personalizado Descrição do Problema e validar BUG-2062
 
