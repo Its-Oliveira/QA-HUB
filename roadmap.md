@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Restaurar criados, cancelados e taxa de cancelamento por relator no relatório de cards cancelados
+- [ ] Manter os demais relatórios e funcionalidades inalterados e validar o cálculo
+
 - [x] Corrigir leitura do campo personalizado Descrição do Problema e validar BUG-2062
 
 - [x] Adicionar modal de detalhes dos Cards Jira, preservando listagem e reescrita existente
