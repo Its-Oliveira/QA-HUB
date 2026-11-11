@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, CreditCard, Bell, FlaskConical, Cog, LogOut, Zap, Menu } from "lucide-react";
+import { LayoutDashboard, CreditCard, Bell, FlaskConical, Cog, LogOut, BarChart3, Zap, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
