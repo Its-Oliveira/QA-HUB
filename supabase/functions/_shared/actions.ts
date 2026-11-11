@@ -23,7 +23,20 @@ export function repository() {
   return `${owner}/${repo}`;
 }
 export async function github(path: string, init: RequestInit = {}) {
-  const response = await fetch(
+  let response = await githubOnce(path, init);
+  for (let attempt = 1; attempt <= 2 && response.status >= 500; attempt++) {
+    console.error(`GitHub ${response.status} em ${path}: ${(await response.text()).slice(0, 300)}`);
+    await new Promise((r) => setTimeout(r, 800 * attempt));
+    response = await githubOnce(path, init);
+  }
+  if (!response.ok && !(init.redirect === "manual" && response.status === 302)) {
+    const body = await response.clone().text().catch(() => "");
+    console.error(`GitHub ${response.status} em ${path}: ${body.slice(0, 300)}`);
+  }
+  return checkGithub(response, init);
+}
+function githubOnce(path: string, init: RequestInit) {
+  return fetch(
     `https://api.github.com/repos/${repository()}/${path}`,
     {
       ...init,
@@ -36,6 +49,8 @@ export async function github(path: string, init: RequestInit = {}) {
       },
     },
   );
+}
+function checkGithub(response: Response, init: RequestInit) {
   if (
     !response.ok &&
     !(init.redirect === "manual" && response.status === 302)
