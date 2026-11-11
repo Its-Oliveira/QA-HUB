@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Remover a aba "Automação" do menu e das rotas, preservando "Automação de Testes" intacta
+- [x] Conferir menu, rota /automacao-testes e rota antiga no navegador
+
 - [x] Restaurar criados, cancelados e taxa de cancelamento por relator no relatório de cards cancelados
 - [x] Manter os demais relatórios e funcionalidades inalterados e validar o cálculo
 - [x] Conferir o relatório com dados reais usando a conta autorizada do Caio
