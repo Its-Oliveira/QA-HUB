@@ -169,7 +169,13 @@ export async function syncRun(run: {
       : run.status === "in_progress"
         ? "in_progress"
         : "queued";
-  const jobs = (await pages(`actions/runs/${run.id}/jobs`, "jobs")).map(
+  let jobList: any[] | null = null;
+  try {
+    jobList = await pages(`actions/runs/${run.id}/jobs`, "jobs");
+  } catch (error) {
+    console.error(`Jobs indisponíveis para run ${run.id}; mantendo dados anteriores.`, error);
+  }
+  const jobs = jobList === null ? (existing?.jobs ?? []) : jobList.map(
     (job) => ({
       id: job.id,
       name: job.name,
