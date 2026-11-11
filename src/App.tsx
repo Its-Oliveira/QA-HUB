@@ -10,7 +10,6 @@ import Login from "./pages/Login";
 import CardsJira from "./pages/CardsJira";
 import Lembretes from "./pages/Lembretes";
 import Testes from "./pages/Testes";
-import Automacao from "./pages/Automacao";
 import AutomacaoTestes from "./pages/AutomacaoTestes";
 import ExecucaoDetalhe from "./pages/ExecucaoDetalhe";
 import ReportsPage from "./pages/Reports";
@@ -36,7 +35,6 @@ const AppRoutes = () => {
       <Route path="/cards" element={<ProtectedRoute><CardsJira /></ProtectedRoute>} />
       <Route path="/lembretes" element={<ProtectedRoute><Lembretes /></ProtectedRoute>} />
       <Route path="/testes" element={<ProtectedRoute><Testes /></ProtectedRoute>} />
-      <Route path="/automacao" element={<ProtectedRoute><Automacao /></ProtectedRoute>} />
       <Route path="/automacao-testes" element={<ProtectedRoute><AutomacaoTestes /></ProtectedRoute>} />
       <Route path="/automacao-testes/execucao/:id" element={<ProtectedRoute><ExecucaoDetalhe /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
